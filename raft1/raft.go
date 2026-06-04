@@ -165,16 +165,28 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply
 
 }
 
+func (rf *Raft) sendAppendEntries(server int, args *AppendEntriesArgs, reply *AppendEntriesReply) bool { 
+	appendEntries := rf.peers[server].Call("Raft.AppendEntries", args, reply)
+	return appendEntries
+}
+
 
 // example RequestVote RPC handler.
 func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
 	// Your code here (3A, 3B).
+	if rf.currentTerm < args.CandidateTerm { 
+		reply.VoteGranted = false 
+		return 
+	}	
 
-	// check current server status 
-	// if it's leader, send AppendRPC 
-	// if it's follower vote 
-	// if it's candidate , check ReplyTerm > rf.CurrentTerm  // i don't think this should happen 
-
+	// totally confused about this line
+	if rf.votedFor == -1 || rf.votedFor == args.CandidateId { 
+		reply.VoteGranted = true 
+		rf.votedFor = args.CandidateId
+	} else { 
+		reply.VoteGranted = false 
+	}
+	
 }
 
 // example code to send a RequestVote RPC to a server.
@@ -234,8 +246,36 @@ func (rf *Raft) Start(command interface{}) (int, int, bool) {
 
 func (rf *Raft) ticker() {
 	for true {
-		// Implement Unlock() 
-		// Your code here (3A)
+
+		// define the leader's heartbeat here
+
+		// no more heartbeats than 10 times a second
+		if rf.role == Leader { 
+
+			// sleep to ensure that the leader only sends 10 request every second. 
+			time.Sleep(100 * time.Millisecond)
+			appendRPCreq := AppendEntriesArgs{
+					LeaderTerm : rf.currentTerm,
+					LeaderId : rf.me, 
+						} 
+			appendRPCres := AppendEntriesReply{} 
+			
+			// run multiple go routines and then send requestRPC
+			var wg sync.WaitGroup
+			for peer := range rf.peers { 
+				wg.Add(1)
+
+				// only send heartbeats 10 times a second. 
+				go func (p int) {
+					defer wg.Done() 
+					rf.sendAppendEntries(p, &appendRPCreq, &appendRPCres) 
+				}(peer) 
+			}
+			wg.Wait()
+			continue 
+		}
+
+
 
 		// Follower -> Candidate 
 		// Check if a leader election should be started.
@@ -248,12 +288,6 @@ func (rf *Raft) ticker() {
 			// wait 50 - 300 seconds to start election, to minimize 2 servers becoming candidate at the same time 
 			ms := 50 + (rand.Int63() % 300)
 			time.Sleep(time.Duration(ms) * time.Millisecond)
-
-			
-			// if we recieve appendRPC that means we can end the election and skip this step
-
-
-
 
 			// start election 
 			rf.role = Candidate
@@ -271,8 +305,11 @@ func (rf *Raft) ticker() {
 			var wg sync.WaitGroup
 
 			majorityServers := 0 
+
 			for i := range rf.peers { 
+			wg.Add(1)
 			go func(i int, req RequestVoteArgs, res RequestVoteReply) {
+				defer wg.Done() 
 				if rf.sendRequestVote(i, &req, &res) { 
 					rf.mu.Lock()
 					majorityServers++
@@ -280,7 +317,7 @@ func (rf *Raft) ticker() {
 				}
 			}(i, reqRPC, resRPC)
 			} 
-			
+
 			// wait for all the server response
 			wg.Wait()
 
@@ -294,7 +331,6 @@ func (rf *Raft) ticker() {
 			// start sending AppendRPC
 
 		}
-
 	}
 }
 
