@@ -244,6 +244,22 @@ func (rf *Raft) Start(command interface{}) (int, int, bool) {
 	return index, term, isLeader
 }
 
+
+
+
+// debugging session 1 :
+	/* 
+	Error Occured with TestInitialElection3A --> Fatal: expected one leader, got none
+	Surprising Error : The previous error stopped occuring without any changes, new error --> Warning : Data Race 
+		(even with changed error my the error hypothesis remains same)
+
+
+		1. Check if I'm testing this correctly 
+		2. Error Hypothesis 1: the error would most probably house in ticker() or Make() 
+			(Note: handle race conditions in this place)
+
+	*/ 
+
 func (rf *Raft) ticker() {
 	for true {
 
