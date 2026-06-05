@@ -54,14 +54,18 @@ type Raft struct {
 // believes it is the leader.
 func (rf *Raft) GetState() (int, bool) {
 
+	// debugger error in this function as well 
+
 	var term int
 	var isleader bool
 	// Your code here (3A).
 
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
+
 	term = rf.currentTerm
 	
+	// data race here as well? 
 	if rf.role == Leader { 
 		isleader = true 
 	}
@@ -163,6 +167,21 @@ type AppendEntriesReply struct {
 // defined Jun1 
 func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply) {
 
+	// I think i'd have to get address of these values first, how? 
+
+			// Repsonding : Leader 
+			// if current term is greater than append rpc's term return false 
+
+			reply.ReplyTerm = rf.currentTerm
+
+			if rf.currentTerm > args.LeaderTerm { 
+				reply.Success = false 
+				return 
+			}
+
+			reply.Success = true
+
+
 }
 
 func (rf *Raft) sendAppendEntries(server int, args *AppendEntriesArgs, reply *AppendEntriesReply) bool { 
@@ -174,18 +193,15 @@ func (rf *Raft) sendAppendEntries(server int, args *AppendEntriesArgs, reply *Ap
 // example RequestVote RPC handler.
 func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
 	// Your code here (3A, 3B).
-	if rf.currentTerm < args.CandidateTerm { 
+
+	if rf.currentTerm > args.CandidateTerm { 
+		reply.ReplyTerm = rf.CurrentTerm
 		reply.VoteGranted = false 
 		return 
 	}	
 
-	// totally confused about this line
-	if rf.votedFor == -1 || rf.votedFor == args.CandidateId { 
-		reply.VoteGranted = true 
-		rf.votedFor = args.CandidateId
-	} else { 
-		reply.VoteGranted = false 
-	}
+	reply.VoteGranted = true 
+	rf.votedFor = args.CandidateId
 	
 }
 
@@ -254,7 +270,7 @@ func (rf *Raft) Start(command interface{}) (int, int, bool) {
 		(even with changed error my the error hypothesis remains same)
 
 
-		1. Check if I'm testing this correctly 
+		1. Check if I'm testing this correctly (done, conclusion : my testing method is robust and valid as per the instructions of the course) 
 		2. Error Hypothesis 1: the error would most probably house in ticker() or Make() 
 			(Note: handle race conditions in this place)
 
@@ -263,25 +279,23 @@ func (rf *Raft) Start(command interface{}) (int, int, bool) {
 func (rf *Raft) ticker() {
 	for true {
 
-		// define the leader's heartbeat here
-
-		// no more heartbeats than 10 times a second
 		if rf.role == Leader { 
-
-			// sleep to ensure that the leader only sends 10 request every second. 
+			
 			time.Sleep(100 * time.Millisecond)
-			appendRPCreq := AppendEntriesArgs{
+			
+			appendRPCreq := AppendEntriesArgs {
 					LeaderTerm : rf.currentTerm,
 					LeaderId : rf.me, 
 						} 
+
 			appendRPCres := AppendEntriesReply{} 
 			
-			// run multiple go routines and then send requestRPC
+
 			var wg sync.WaitGroup
 			for peer := range rf.peers { 
+
 				wg.Add(1)
 
-				// only send heartbeats 10 times a second. 
 				go func (p int) {
 					defer wg.Done() 
 					rf.sendAppendEntries(p, &appendRPCreq, &appendRPCres) 
@@ -293,14 +307,28 @@ func (rf *Raft) ticker() {
 
 
 
+
+
+
+// for a candidate what are the things that I'd have to handle? 
+		/* 
+			1. If it's a follower and time elasped is greater than make it candidate and send RequestRPC
+			2. What if it's already a candidate, prompt to send RequestRPC 
+			3. If we have a reply index greater than the candidate then turn off the election and return the candidate back to follower 
+			4. handle other followers request
+			5. The following case is for a follower, what if the node is a candidate itself? 
+			6. I've not implemented timers, where and how to implement it what even is it? 
+
+		*/
+
+
 		// Follower -> Candidate 
-		// Check if a leader election should be started.
 		curTime := time.Now()
 		elasped := curTime.Sub(rf.lastHeard)
 
 		if elasped.Seconds() > 5 { 
 
-			// election timeout happened, elasped > 5 seconds 
+			// election timeout happened, elasped > 5 seconds , this means change this to candidate
 			// wait 50 - 300 seconds to start election, to minimize 2 servers becoming candidate at the same time 
 			ms := 50 + (rand.Int63() % 300)
 			time.Sleep(time.Duration(ms) * time.Millisecond)
@@ -308,16 +336,19 @@ func (rf *Raft) ticker() {
 			// start election 
 			rf.role = Candidate
 			rf.votedFor = rf.me
+
 			rf.currentTerm ++ 
 
 			// send request vote RPC
 			// should we send RequestVoteArgs in mulitiple?? idk
 			reqRPC := RequestVoteArgs{ 
 					CandidateTerm : rf.currentTerm, 
-					CandidateId : rf.me, }
+					CandidateId : rf.me, 
+				}
+
 			resRPC := RequestVoteReply{}
 			
-			// introducing wait group to handle majorityValue which is accessed by multiple servers
+			// introducing wait group to handle majorityServers which is accessed by multiple servers, to keep track if they voted
 			var wg sync.WaitGroup
 
 			majorityServers := 0 
@@ -325,14 +356,22 @@ func (rf *Raft) ticker() {
 			for i := range rf.peers { 
 			wg.Add(1)
 			go func(i int, req RequestVoteArgs, res RequestVoteReply) {
+				// defer wg.Done() --> decrements wg.Add(1)'s increment when go func() ... ends 
 				defer wg.Done() 
+
 				if rf.sendRequestVote(i, &req, &res) { 
 					rf.mu.Lock()
-					majorityServers++
+					
+					// first condition check if the connection was made with the first server 
+					// one more condition to check the the vote was approved
+					if resRPC.VoteGranted { 
+							majorityServers++
+						} 
+
 					rf.mu.Unlock()
 				}
 			}(i, reqRPC, resRPC)
-			} 
+		    } 
 
 			// wait for all the server response
 			wg.Wait()
@@ -343,12 +382,64 @@ func (rf *Raft) ticker() {
 			if majorityServers >= midValue { 
 				rf.role = Leader
 			}
-			
-			// start sending AppendRPC
 
 		}
+
+
+
+		// there's no handling for follower
+		if rf.role == Follower { 
+			// write some code here 
+			// if it's from the leader Run AppendEntries
+			AppendEntries()
+
+			// if it's from the follower run RequestVote
+			RequestVote() 
+
+
+		}
+
 	}
 }
+
+ /*
+ type RequestVoteArgs struct {
+	// Your data here (3A, 3B).
+	CandidateTerm int 
+	CandidateId int 
+
+}
+
+// example RequestVote RPC reply structure.
+// field names must start with capital letters!
+type RequestVoteReply struct {
+	// Your data here (3A).
+
+	// did they vote or no
+	// if yes then update something
+	
+	// if ReplyTerm > rf.CurrentTerm, the candidate is stale 
+	ReplyTerm int  
+	VoteGranted bool
+
+}
+
+// this just sends out heartbeats, so no need to worry right now
+type AppendEntriesArgs struct { 
+	LeaderTerm int 
+	LeaderId int 
+}
+
+type AppendEntriesReply struct { 
+	ReplyTerm int
+	Success bool
+}
+	
+*/
+
+
+
+
 
 // the service or tester wants to create a Raft server. the ports
 // of all the Raft servers (including this one) are in peers[]. this
@@ -370,12 +461,16 @@ func Make(peers []*labrpc.ClientEnd, me int,
 	rf.currentTerm = 0 
 	rf.votedFor = -1 
 	rf.role = Follower
+
+	// error here as well 
 	rf.lastHeard = time.Now()
 
 	// initialize from state persisted before a crash
 	rf.readPersist(persister.ReadRaftState())
 
 	// start ticker goroutine to start elections
+
+	// race condition here as well?? 6.5840/raft1.Make.gowrap1()
 	go rf.ticker()
 
 
