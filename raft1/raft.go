@@ -195,7 +195,7 @@ func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
 	// Your code here (3A, 3B).
 
 	if rf.currentTerm > args.CandidateTerm { 
-		reply.ReplyTerm = rf.CurrentTerm
+		reply.ReplyTerm = rf.currentTerm
 		reply.VoteGranted = false 
 		return 
 	}	
