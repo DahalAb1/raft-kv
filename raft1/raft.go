@@ -55,13 +55,12 @@ type Raft struct {
 func (rf *Raft) GetState() (int, bool) {
 
 	// debugger error in this function as well 
+	rf.mu.Lock()
+	defer rf.mu.Unlock()
 
 	var term int
 	var isleader bool
 	// Your code here (3A).
-
-	rf.mu.Lock()
-	defer rf.mu.Unlock()
 
 	term = rf.currentTerm
 	
@@ -172,16 +171,22 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply
 			// Repsonding : Leader 
 			// if current term is greater than append rpc's term return false 
 
-			reply.ReplyTerm = rf.currentTerm
+
+			rf.mu.Lock() 
+			defer rf.mu.Unlock() 
+
+		// when appendEntries is called we have to reset the election timer to avoid election 
+		// Also we have to reply with our currentTerm to the reply
+			rf.lastHeard = time.Now() 
 
 			if rf.currentTerm > args.LeaderTerm { 
 				reply.Success = false 
-				return 
+			} else {
+				reply.Success = true
+				rf.currentTerm = args.LeaderTerm
 			}
-
-			reply.Success = true
-
-
+			
+			reply.ReplyTerm = rf.currentTerm
 }
 
 func (rf *Raft) sendAppendEntries(server int, args *AppendEntriesArgs, reply *AppendEntriesReply) bool { 
@@ -193,15 +198,24 @@ func (rf *Raft) sendAppendEntries(server int, args *AppendEntriesArgs, reply *Ap
 // example RequestVote RPC handler.
 func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
 	// Your code here (3A, 3B).
+	rf.mu.Lock()
+	defer rf.mu.Unlock() 
 
 	if rf.currentTerm > args.CandidateTerm { 
 		reply.ReplyTerm = rf.currentTerm
 		reply.VoteGranted = false 
-		return 
-	}	
 
-	reply.VoteGranted = true 
-	rf.votedFor = args.CandidateId
+	} else {
+
+		rf.votedFor = args.CandidateId
+		rf.currentTerm = args.CandidateTerm
+		rf.role = Follower
+
+		reply.ReplyTerm = rf.currentTerm
+		reply.VoteGranted = true 
+
+
+	} 
 	
 }
 
@@ -277,6 +291,7 @@ func (rf *Raft) Start(command interface{}) (int, int, bool) {
 	*/ 
 
 func (rf *Raft) ticker() {
+	
 	for true {
 
 		if rf.role == Leader { 
@@ -310,7 +325,7 @@ func (rf *Raft) ticker() {
 
 
 
-// for a candidate what are the things that I'd have to handle? 
+		// for a candidate what are the things that I'd have to handle? 
 		/* 
 			1. If it's a follower and time elasped is greater than make it candidate and send RequestRPC
 			2. What if it's already a candidate, prompt to send RequestRPC 
@@ -326,34 +341,49 @@ func (rf *Raft) ticker() {
 		curTime := time.Now()
 		elasped := curTime.Sub(rf.lastHeard)
 
-		if elasped.Seconds() > 5 { 
+		if elasped.Milliseconds() > 400 { 
+			// there's no reason i put it to 400... 
+			// a follower starts election when it has not gotten 4 heartbeats, each heartbeat is sent out every 100ms, 10 a second
 
-			// election timeout happened, elasped > 5 seconds , this means change this to candidate
+
+
 			// wait 50 - 300 seconds to start election, to minimize 2 servers becoming candidate at the same time 
 			ms := 50 + (rand.Int63() % 300)
 			time.Sleep(time.Duration(ms) * time.Millisecond)
 
-			// start election 
+
+
+			// when could we trigger this case as false? 
+			// if it was a candidate and the server crashed, then it will try to start an election
+			// if rf.role != Candidate {  // i don't think this check is necessary 
+			// RequestVote rpc will handle this, as it will reject the vote and this will fall back to follower
+				
+			
+		// start election 
 			rf.role = Candidate
 			rf.votedFor = rf.me
+			rf.currentTerm ++
 
-			rf.currentTerm ++ 
 
-			// send request vote RPC
-			// should we send RequestVoteArgs in mulitiple?? idk
+		// send request vote RPC
 			reqRPC := RequestVoteArgs{ 
 					CandidateTerm : rf.currentTerm, 
 					CandidateId : rf.me, 
 				}
-
 			resRPC := RequestVoteReply{}
 			
-			// introducing wait group to handle majorityServers which is accessed by multiple servers, to keep track if they voted
+
+		// Here wait group is necessary to ... 
 			var wg sync.WaitGroup
 
-			majorityServers := 0 
+			majorityServers := 1 
 
 			for i := range rf.peers { 
+
+				if i == rf.me {
+					continue 
+				}
+
 			wg.Add(1)
 			go func(i int, req RequestVoteArgs, res RequestVoteReply) {
 				// defer wg.Done() --> decrements wg.Add(1)'s increment when go func() ... ends 
@@ -364,7 +394,7 @@ func (rf *Raft) ticker() {
 					
 					// first condition check if the connection was made with the first server 
 					// one more condition to check the the vote was approved
-					if resRPC.VoteGranted { 
+					if res.VoteGranted { 
 							majorityServers++
 						} 
 
@@ -375,68 +405,21 @@ func (rf *Raft) ticker() {
 
 			// wait for all the server response
 			wg.Wait()
+			
 
+			// numPeers -1 because we don't want to count our vote
 			numPeers := len(rf.peers)
-			midValue := int(numPeers) / 2
+			midValue := numPeers / 2
 
-			if majorityServers >= midValue { 
+			if majorityServers > midValue { 
 				rf.role = Leader
 			}
 
 		}
 
 
-
-		// there's no handling for follower
-		if rf.role == Follower { 
-			// write some code here 
-			// if it's from the leader Run AppendEntries
-			AppendEntries()
-
-			// if it's from the follower run RequestVote
-			RequestVote() 
-
-
-		}
-
 	}
 }
-
- /*
- type RequestVoteArgs struct {
-	// Your data here (3A, 3B).
-	CandidateTerm int 
-	CandidateId int 
-
-}
-
-// example RequestVote RPC reply structure.
-// field names must start with capital letters!
-type RequestVoteReply struct {
-	// Your data here (3A).
-
-	// did they vote or no
-	// if yes then update something
-	
-	// if ReplyTerm > rf.CurrentTerm, the candidate is stale 
-	ReplyTerm int  
-	VoteGranted bool
-
-}
-
-// this just sends out heartbeats, so no need to worry right now
-type AppendEntriesArgs struct { 
-	LeaderTerm int 
-	LeaderId int 
-}
-
-type AppendEntriesReply struct { 
-	ReplyTerm int
-	Success bool
-}
-	
-*/
-
 
 
 
