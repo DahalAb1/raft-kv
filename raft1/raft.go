@@ -166,26 +166,27 @@ type AppendEntriesReply struct {
 // defined Jun1 
 func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply) {
 
-	// I think i'd have to get address of these values first, how? 
+			rf.mu.Lock()
+			defer rf.mu.Unlock()
 
-			// Repsonding : Leader 
-			// if current term is greater than append rpc's term return false 
-
-
-			rf.mu.Lock() 
-			defer rf.mu.Unlock() 
-
-		// when appendEntries is called we have to reset the election timer to avoid election 
-		// Also we have to reply with our currentTerm to the reply
-			rf.lastHeard = time.Now() 
-
-			if rf.currentTerm > args.LeaderTerm { 
-				reply.Success = false 
-			} else {
-				reply.Success = true
-				rf.currentTerm = args.LeaderTerm
+		// stale leader, here we do not reset election timer
+			if args.LeaderTerm < rf.currentTerm {
+				reply.Success = false
+				reply.ReplyTerm = rf.currentTerm
+				return
 			}
-			
+
+		// valid leader, become follower
+			if args.LeaderTerm > rf.currentTerm {
+				rf.currentTerm = args.LeaderTerm
+				rf.votedFor = -1
+			}
+			rf.role = Follower
+
+		// heard from the leader, reset the election timer
+			rf.lastHeard = time.Now()
+
+			reply.Success = true
 			reply.ReplyTerm = rf.currentTerm
 }
 
@@ -199,24 +200,30 @@ func (rf *Raft) sendAppendEntries(server int, args *AppendEntriesArgs, reply *Ap
 func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
 	// Your code here (3A, 3B).
 	rf.mu.Lock()
-	defer rf.mu.Unlock() 
+	defer rf.mu.Unlock()
 
-	if rf.currentTerm > args.CandidateTerm { 
+	if args.CandidateTerm > rf.currentTerm {
+		rf.currentTerm = args.CandidateTerm
+		rf.votedFor = -1
+		rf.role = Follower
+	}
+
+	if args.CandidateTerm < rf.currentTerm {
+		reply.VoteGranted = false
 		reply.ReplyTerm = rf.currentTerm
-		reply.VoteGranted = false 
-
-	} else {
+		return 
+	}
+	
+	if rf.votedFor == -1 || rf.votedFor == args.CandidateId {
 
 		rf.votedFor = args.CandidateId
-		rf.currentTerm = args.CandidateTerm
-		rf.role = Follower
+		reply.VoteGranted = true
+	} else {
+		// already voted for someone else this term, rf.votedFor != args.CandidateId
+		reply.VoteGranted = false
+	}
 
-		reply.ReplyTerm = rf.currentTerm
-		reply.VoteGranted = true 
-
-
-	} 
-	
+	reply.ReplyTerm = rf.currentTerm
 }
 
 // example code to send a RequestVote RPC to a server.
@@ -293,13 +300,24 @@ func (rf *Raft) Start(command interface{}) (int, int, bool) {
 func (rf *Raft) ticker() {
 	
 	for true {
+		
+		// Data Race Speculations 
+			// rf.role --> AppendRPC is triggered, but this loop also is triggered
 
-		if rf.role == Leader { 
+
+		// This is a really smart way to fix it
+		rf.mu.Lock()
+			role := rf.role 
+			term := rf.currentTerm
+		rf.mu.Unlock()
+
+		if role == Leader { 
 			
+			// wait 100ms to send request. 
 			time.Sleep(100 * time.Millisecond)
 			
 			appendRPCreq := AppendEntriesArgs {
-					LeaderTerm : rf.currentTerm,
+					LeaderTerm : term,
 					LeaderId : rf.me, 
 						} 
 
@@ -309,14 +327,28 @@ func (rf *Raft) ticker() {
 			var wg sync.WaitGroup
 			for peer := range rf.peers { 
 
+				// no need to send heart beat to myself
+				// but I believe there's no error if we send heartBeat to ourselves
+				if peer == rf.me { 
+					continue 
+				}
+
 				wg.Add(1)
 
-				go func (p int) {
+				// missed this before did not pass in copies, directly passed response
+				// We have to pass in copies of appendRPC otherwise everything will write itself in a single response struct
+				go func (p int, req AppendEntriesArgs, res AppendEntriesReply) {
+					// decrements wait group when the funciton is done
 					defer wg.Done() 
-					rf.sendAppendEntries(p, &appendRPCreq, &appendRPCres) 
-				}(peer) 
+					rf.sendAppendEntries(p, &req, &res) 
+
+				}(peer, appendRPCreq, appendRPCres) 
+
 			}
 			wg.Wait()
+
+			// skips the candidate's election logic after sending heatbeats to all other server 
+
 			continue 
 		}
 
@@ -336,10 +368,18 @@ func (rf *Raft) ticker() {
 
 		*/
 
+	// suspicious : Race Conditions 
+		// 1. rf.lastHeard (fixed)
+		// 2. unprotected writes rf.role, rf.votedFor, rf.currentTerm 
 
 		// Follower -> Candidate 
+		
+		rf.mu.Lock()
+		lastMoment := rf.lastHeard
+		rf.mu.Unlock()
+
 		curTime := time.Now()
-		elasped := curTime.Sub(rf.lastHeard)
+		elasped := curTime.Sub(lastMoment)
 
 		if elasped.Milliseconds() > 400 { 
 			// there's no reason i put it to 400... 
@@ -360,14 +400,17 @@ func (rf *Raft) ticker() {
 				
 			
 		// start election 
-			rf.role = Candidate
-			rf.votedFor = rf.me
-			rf.currentTerm ++
+			rf.mu.Lock()
+				rf.role = Candidate
+				rf.votedFor = rf.me
+				rf.currentTerm ++
+				term:= rf.currentTerm
+			rf.mu.Unlock()
 
 
 		// send request vote RPC
 			reqRPC := RequestVoteArgs{ 
-					CandidateTerm : rf.currentTerm, 
+					CandidateTerm : term, 
 					CandidateId : rf.me, 
 				}
 			resRPC := RequestVoteReply{}
@@ -412,7 +455,11 @@ func (rf *Raft) ticker() {
 			midValue := numPeers / 2
 
 			if majorityServers > midValue { 
-				rf.role = Leader
+				rf.mu.Lock()
+				if rf.role == Candidate { 
+					rf.role = Leader
+				} 
+				rf.mu.Unlock()
 			}
 
 		}
