@@ -368,10 +368,6 @@ func (rf *Raft) ticker() {
 
 		*/
 
-	// suspicious : Race Conditions 
-		// 1. rf.lastHeard (fixed)
-		// 2. unprotected writes rf.role, rf.votedFor, rf.currentTerm 
-
 		// Follower -> Candidate 
 		
 		rf.mu.Lock()
@@ -421,16 +417,27 @@ func (rf *Raft) ticker() {
 
 			majorityServers := 1 
 
+			// race condition here? rf.peers can change, what will happen if one of the peers breaks? 
 			for i := range rf.peers { 
+
+				// if waiting for vote, append RPC is encountered then we stop the vote. 
+				rf.mu.Lock()
+				if rf.role == Follower { 
+					rf.mu.Unlock()
+					break 
+				}
+				rf.mu.Unlock()
+
+
 
 				if i == rf.me {
 					continue 
 				}
 
-			wg.Add(1)
+			//wg.Add(1)
 			go func(i int, req RequestVoteArgs, res RequestVoteReply) {
 				// defer wg.Done() --> decrements wg.Add(1)'s increment when go func() ... ends 
-				defer wg.Done() 
+				// defer wg.Done() 
 
 				if rf.sendRequestVote(i, &req, &res) { 
 					rf.mu.Lock()
@@ -440,17 +447,32 @@ func (rf *Raft) ticker() {
 					if res.VoteGranted { 
 							majorityServers++
 						} 
+						
+						// from here we have to  to send RPC request when we have reached majority servers 
+						// when we have response from majority servers we upgrade the state and end the for loop and stop 
+						// server could break, that can change majority servers. How to verify how many servers are there, and how to verify there's a majority? 
+					
 
 					rf.mu.Unlock()
 				}
 			}(i, reqRPC, resRPC)
 		    } 
+			
+			// to sovle the eleciton problem 
+			// 1. How do i know how many servers are active as candidate 
+			// 2. How many votes do i need to become a leader
 
 			// wait for all the server response
-			wg.Wait()
+			// i don't think we need to wait, we need to wait until we reach a certain no of servers and then we can stop
+
+			// implementation of wait group here is not valid
+			 
+			//wg.Wait()
+
+			// if i remove we.Wait(), it will be chaotic, 
 			
 
-			// numPeers -1 because we don't want to count our vote
+
 			numPeers := len(rf.peers)
 			midValue := numPeers / 2
 
