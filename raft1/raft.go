@@ -218,6 +218,8 @@ func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
 
 		rf.votedFor = args.CandidateId
 		reply.VoteGranted = true
+		rf.lastHeard = time.Now()
+		
 	} else {
 		// already voted for someone else this term, rf.votedFor != args.CandidateId
 		reply.VoteGranted = false
@@ -339,10 +341,22 @@ func (rf *Raft) ticker() {
 				// We have to pass in copies of appendRPC otherwise everything will write itself in a single response struct
 				go func (p int, req AppendEntriesArgs, res AppendEntriesReply) {
 					// decrements wait group when the funciton is done
-					defer wg.Done() 
-					rf.sendAppendEntries(p, &req, &res) 
+					defer wg.Done()
+					if rf.sendAppendEntries(p, &req, &res) {
 
-				}(peer, appendRPCreq, appendRPCres) 
+						// follower has a higher term: we are a stale leader,
+						// step down (paper Figure 2)
+						rf.mu.Lock()
+						if res.ReplyTerm > rf.currentTerm {
+							rf.currentTerm = res.ReplyTerm
+							rf.votedFor = -1
+							rf.role = Follower
+							rf.lastHeard = time.Now()
+						}
+						rf.mu.Unlock()
+					}
+
+				}(peer, appendRPCreq, appendRPCres)
 
 			}
 			wg.Wait()
@@ -395,8 +409,14 @@ func (rf *Raft) ticker() {
 			// RequestVote rpc will handle this, as it will reject the vote and this will fall back to follower
 				
 			
-		// start election 
+		// start election
 			rf.mu.Lock()
+				// a heartbeat may have arrived during the random sleep above —
+				// re-check before electing, so we don't disrupt a valid leader
+				if time.Since(rf.lastHeard).Milliseconds() < 400 {
+					rf.mu.Unlock()
+					continue
+				}
 				rf.role = Candidate
 				rf.votedFor = rf.me
 				rf.currentTerm ++
@@ -413,9 +433,16 @@ func (rf *Raft) ticker() {
 			
 
 		// Here wait group is necessary to ... 
-			var wg sync.WaitGroup
+			// var wg sync.WaitGroup
 
-			majorityServers := 1 
+			// majorityServers := 1 
+			
+			// locking here to create no of channels, here i've put safety to ensure that changes in rf.peers won't affect our election
+			rf.mu.Lock()
+				noPeers := len(rf.peers)
+				ch := make(chan int, noPeers)
+			rf.mu.Unlock() 
+				done := make(chan struct{})
 
 			// race condition here? rf.peers can change, what will happen if one of the peers breaks? 
 			for i := range rf.peers { 
@@ -433,30 +460,71 @@ func (rf *Raft) ticker() {
 				if i == rf.me {
 					continue 
 				}
-
+			
 			//wg.Add(1)
 			go func(i int, req RequestVoteArgs, res RequestVoteReply) {
-				// defer wg.Done() --> decrements wg.Add(1)'s increment when go func() ... ends 
-				// defer wg.Done() 
+				if rf.sendRequestVote(i, &req, &res) {
 
-				if rf.sendRequestVote(i, &req, &res) { 
+					// reply carries a higher term: we are stale, step down
+					// (paper Figure 2: if response term T > currentTerm,
+					// set currentTerm = T and convert to follower)
 					rf.mu.Lock()
-					
-					// first condition check if the connection was made with the first server 
-					// one more condition to check the the vote was approved
-					if res.VoteGranted { 
-							majorityServers++
-						} 
-						
-						// from here we have to  to send RPC request when we have reached majority servers 
-						// when we have response from majority servers we upgrade the state and end the for loop and stop 
-						// server could break, that can change majority servers. How to verify how many servers are there, and how to verify there's a majority? 
-					
-
+					if res.ReplyTerm > rf.currentTerm {
+						rf.currentTerm = res.ReplyTerm
+						rf.votedFor = -1
+						rf.role = Follower
+					}
 					rf.mu.Unlock()
+
+					if res.VoteGranted {
+						select {
+						case ch <- res.ReplyTerm: // send vote, election still active
+						case <-done:              // election ended, drop vote
+						}
+					}
 				}
 			}(i, reqRPC, resRPC)
+
+
 		    } 
+			
+			// count votes until majority, loss, or timeout
+			votes := 1 // voted for self
+			won := false
+			timeout := time.After(300 * time.Millisecond)
+
+		countLoop:
+			for {
+				select {
+				case <-ch: // a vote arrived
+					votes++
+					if votes >= noPeers/2+1 {
+						won = true
+						break countLoop
+					}
+				case <-timeout: // election took too long, give up and retry next tick
+					break countLoop
+				}
+
+				// lost election? (a new leader's AppendEntries made us Follower)
+				rf.mu.Lock()
+				if rf.role == Follower {
+					rf.mu.Unlock()
+					break countLoop
+				}
+				rf.mu.Unlock()
+			}
+
+			if won {
+				rf.mu.Lock()
+				if rf.role == Candidate {
+					rf.role = Leader
+				}
+				rf.mu.Unlock()
+			}
+
+			// tell leftover vote goroutines to stop
+			close(done)
 			
 			// to sovle the eleciton problem 
 			// 1. How do i know how many servers are active as candidate 
@@ -473,16 +541,16 @@ func (rf *Raft) ticker() {
 			
 
 
-			numPeers := len(rf.peers)
-			midValue := numPeers / 2
+			// numPeers := len(rf.peers)
+			// midValue := numPeers / 2
 
-			if majorityServers > midValue { 
-				rf.mu.Lock()
-				if rf.role == Candidate { 
-					rf.role = Leader
-				} 
-				rf.mu.Unlock()
-			}
+			// if majorityServers > midValue { 
+			// 	rf.mu.Lock()
+			// 	if rf.role == Candidate { 
+			// 		rf.role = Leader
+			// 	} 
+			// 	rf.mu.Unlock()
+			// }
 
 		}
 
