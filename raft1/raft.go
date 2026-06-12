@@ -303,49 +303,38 @@ func (rf *Raft) ticker() {
 	
 	for true {
 		
-		// Data Race Speculations 
-			// rf.role --> AppendRPC is triggered, but this loop also is triggered
-
-
-		// This is a really smart way to fix it
 		rf.mu.Lock()
 			role := rf.role 
 			term := rf.currentTerm
 		rf.mu.Unlock()
 
-		if role == Leader { 
-			
-			// wait 100ms to send request. 
+		if role == Leader {
+			// wait 100ms to send request.
 			time.Sleep(100 * time.Millisecond)
-			
+
 			appendRPCreq := AppendEntriesArgs {
 					LeaderTerm : term,
-					LeaderId : rf.me, 
-						} 
+					LeaderId : rf.me,
+						}
 
-			appendRPCres := AppendEntriesReply{} 
-			
+			appendRPCres := AppendEntriesReply{}
 
-			var wg sync.WaitGroup
-			for peer := range rf.peers { 
+			for peer := range rf.peers {
 
 				// no need to send heart beat to myself
-				// but I believe there's no error if we send heartBeat to ourselves
-				if peer == rf.me { 
-					continue 
+				if peer == rf.me {
+					continue
 				}
 
-				wg.Add(1)
-
-				// missed this before did not pass in copies, directly passed response
-				// We have to pass in copies of appendRPC otherwise everything will write itself in a single response struct
+				// fire-and-forget: never wait for replies. a Call() to a
+				// disconnected peer can block up to ~7s (labrpc long delays),
+				// and waiting would stall heartbeats to the healthy peers,
+				// letting them time out and start needless elections.
+				// pass in copies of appendRPC otherwise everything will write itself in a single response struct
 				go func (p int, req AppendEntriesArgs, res AppendEntriesReply) {
-					// decrements wait group when the funciton is done
-					defer wg.Done()
 					if rf.sendAppendEntries(p, &req, &res) {
 
-						// follower has a higher term: we are a stale leader,
-						// step down (paper Figure 2)
+						// follower has a higher term: we are a stale leader, so update
 						rf.mu.Lock()
 						if res.ReplyTerm > rf.currentTerm {
 							rf.currentTerm = res.ReplyTerm
@@ -359,11 +348,9 @@ func (rf *Raft) ticker() {
 				}(peer, appendRPCreq, appendRPCres)
 
 			}
-			wg.Wait()
 
-			// skips the candidate's election logic after sending heatbeats to all other server 
-
-			continue 
+			// skips the candidate's election logic after sending heatbeats to all other server
+			continue
 		}
 
 
@@ -371,19 +358,7 @@ func (rf *Raft) ticker() {
 
 
 
-		// for a candidate what are the things that I'd have to handle? 
-		/* 
-			1. If it's a follower and time elasped is greater than make it candidate and send RequestRPC
-			2. What if it's already a candidate, prompt to send RequestRPC 
-			3. If we have a reply index greater than the candidate then turn off the election and return the candidate back to follower 
-			4. handle other followers request
-			5. The following case is for a follower, what if the node is a candidate itself? 
-			6. I've not implemented timers, where and how to implement it what even is it? 
-
-		*/
-
 		// Follower -> Candidate 
-		
 		rf.mu.Lock()
 		lastMoment := rf.lastHeard
 		rf.mu.Unlock()
@@ -392,22 +367,9 @@ func (rf *Raft) ticker() {
 		elasped := curTime.Sub(lastMoment)
 
 		if elasped.Milliseconds() > 400 { 
-			// there's no reason i put it to 400... 
-			// a follower starts election when it has not gotten 4 heartbeats, each heartbeat is sent out every 100ms, 10 a second
-
-
-
 			// wait 50 - 300 seconds to start election, to minimize 2 servers becoming candidate at the same time 
 			ms := 50 + (rand.Int63() % 300)
 			time.Sleep(time.Duration(ms) * time.Millisecond)
-
-
-
-			// when could we trigger this case as false? 
-			// if it was a candidate and the server crashed, then it will try to start an election
-			// if rf.role != Candidate {  // i don't think this check is necessary 
-			// RequestVote rpc will handle this, as it will reject the vote and this will fall back to follower
-				
 			
 		// start election
 			rf.mu.Lock()
@@ -423,19 +385,12 @@ func (rf *Raft) ticker() {
 				term:= rf.currentTerm
 			rf.mu.Unlock()
 
-
 		// send request vote RPC
 			reqRPC := RequestVoteArgs{ 
 					CandidateTerm : term, 
 					CandidateId : rf.me, 
 				}
 			resRPC := RequestVoteReply{}
-			
-
-		// Here wait group is necessary to ... 
-			// var wg sync.WaitGroup
-
-			// majorityServers := 1 
 			
 			// locking here to create no of channels, here i've put safety to ensure that changes in rf.peers won't affect our election
 			rf.mu.Lock()
@@ -446,7 +401,6 @@ func (rf *Raft) ticker() {
 
 			// race condition here? rf.peers can change, what will happen if one of the peers breaks? 
 			for i := range rf.peers { 
-
 				// if waiting for vote, append RPC is encountered then we stop the vote. 
 				rf.mu.Lock()
 				if rf.role == Follower { 
@@ -484,14 +438,16 @@ func (rf *Raft) ticker() {
 					}
 				}
 			}(i, reqRPC, resRPC)
-
-
-		    } 
+		} 
 			
-			// count votes until majority, loss, or timeout
-			votes := 1 // voted for self
-			won := false
-			timeout := time.After(300 * time.Millisecond)
+
+
+
+
+		// count votes until majority, loss, or timeout
+		votes := 1 // voted for self
+		won := false
+		timeout := time.After(300 * time.Millisecond)
 
 		countLoop:
 			for {
@@ -525,34 +481,10 @@ func (rf *Raft) ticker() {
 
 			// tell leftover vote goroutines to stop
 			close(done)
-			
-			// to sovle the eleciton problem 
-			// 1. How do i know how many servers are active as candidate 
-			// 2. How many votes do i need to become a leader
-
-			// wait for all the server response
-			// i don't think we need to wait, we need to wait until we reach a certain no of servers and then we can stop
-
-			// implementation of wait group here is not valid
-			 
-			//wg.Wait()
-
-			// if i remove we.Wait(), it will be chaotic, 
-			
-
-
-			// numPeers := len(rf.peers)
-			// midValue := numPeers / 2
-
-			// if majorityServers > midValue { 
-			// 	rf.mu.Lock()
-			// 	if rf.role == Candidate { 
-			// 		rf.role = Leader
-			// 	} 
-			// 	rf.mu.Unlock()
-			// }
-
 		}
+
+
+
 
 
 	}
@@ -581,16 +513,12 @@ func Make(peers []*labrpc.ClientEnd, me int,
 	rf.currentTerm = 0 
 	rf.votedFor = -1 
 	rf.role = Follower
-
-	// error here as well 
 	rf.lastHeard = time.Now()
 
 	// initialize from state persisted before a crash
 	rf.readPersist(persister.ReadRaftState())
 
 	// start ticker goroutine to start elections
-
-	// race condition here as well?? 6.5840/raft1.Make.gowrap1()
 	go rf.ticker()
 
 
