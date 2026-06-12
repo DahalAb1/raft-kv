@@ -1,910 +1,500 @@
 === run 1 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.1s #peers 3 #RPCs    56 #Ops    0
 Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  4.3s #peers 3 #RPCs    36 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  5.6s #peers 7 #RPCs   162 #Ops    0
+  ... Passed --  time  7.8s #peers 3 #RPCs    28 #Ops    0
 PASS
-ok  	6.5840/raft1	15.557s
+ok  	6.5840/raft1	8.562s
 === run 2 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.0s #peers 3 #RPCs    52 #Ops    0
 Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  4.5s #peers 3 #RPCs    36 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  8.3s #peers 7 #RPCs   240 #Ops    0
+  ... Passed --  time  4.9s #peers 3 #RPCs    36 #Ops    0
 PASS
-ok  	6.5840/raft1	18.222s
+ok  	6.5840/raft1	5.688s
 === run 3 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.1s #peers 3 #RPCs    56 #Ops    0
 Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  5.0s #peers 3 #RPCs    32 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  5.5s #peers 7 #RPCs   150 #Ops    0
+  ... Passed --  time  5.2s #peers 3 #RPCs    44 #Ops    0
 PASS
-ok  	6.5840/raft1	15.735s
+ok  	6.5840/raft1	5.853s
 === run 4 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.0s #peers 3 #RPCs    54 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  4.5s #peers 3 #RPCs    30 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  7.6s #peers 7 #RPCs   216 #Ops    0
-PASS
-ok  	6.5840/raft1	17.502s
-=== run 5 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.0s #peers 3 #RPCs    56 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  4.6s #peers 3 #RPCs    30 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  6.7s #peers 7 #RPCs   204 #Ops    0
-PASS
-ok  	6.5840/raft1	16.704s
-=== run 6 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.0s #peers 3 #RPCs    58 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  5.0s #peers 3 #RPCs    36 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  8.4s #peers 7 #RPCs   258 #Ops    0
-PASS
-ok  	6.5840/raft1	19.092s
-=== run 7 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.1s #peers 3 #RPCs    56 #Ops    0
-Test (3A): election after network failure (reliable network)...
-Fatal: leader = 0
-        /Users/abhineshdahal/Documents/Raft Consensus/6.5840/src/raft1/test.go:227
-        /Users/abhineshdahal/Documents/Raft Consensus/6.5840/src/raft1/raft_test.go:88
-info: wrote visualization to /var/folders/hd/gwmpkqn560n80bbj37qxccc80000gn/T/porcupine-778704059.html
---- FAIL: TestReElection3A (3.97s)
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  5.6s #peers 7 #RPCs   138 #Ops    0
-FAIL
-exit status 1
-FAIL	6.5840/raft1	14.602s
-=== run 8 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.0s #peers 3 #RPCs    54 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  4.4s #peers 3 #RPCs    42 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  6.1s #peers 7 #RPCs   198 #Ops    0
-PASS
-ok  	6.5840/raft1	15.983s
-=== run 9 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.0s #peers 3 #RPCs    54 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  5.5s #peers 3 #RPCs    32 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  6.7s #peers 7 #RPCs   210 #Ops    0
-PASS
-ok  	6.5840/raft1	17.737s
-=== run 10 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.0s #peers 3 #RPCs    52 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  6.6s #peers 3 #RPCs    32 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  7.0s #peers 7 #RPCs   186 #Ops    0
-PASS
-ok  	6.5840/raft1	18.936s
-=== run 11 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.0s #peers 3 #RPCs    54 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  4.5s #peers 3 #RPCs    32 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  6.0s #peers 7 #RPCs   168 #Ops    0
-PASS
-ok  	6.5840/raft1	15.758s
-=== run 12 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.1s #peers 3 #RPCs    54 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  4.5s #peers 3 #RPCs    28 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  5.5s #peers 7 #RPCs   204 #Ops    0
-PASS
-ok  	6.5840/raft1	15.370s
-=== run 13 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.1s #peers 3 #RPCs    52 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  5.1s #peers 3 #RPCs    28 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  6.2s #peers 7 #RPCs   210 #Ops    0
-PASS
-ok  	6.5840/raft1	16.445s
-=== run 14 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.0s #peers 3 #RPCs    56 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  5.5s #peers 3 #RPCs    36 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  5.5s #peers 7 #RPCs   138 #Ops    0
-PASS
-ok  	6.5840/raft1	16.303s
-=== run 15 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.0s #peers 3 #RPCs    52 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  6.1s #peers 3 #RPCs    34 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  5.5s #peers 7 #RPCs   210 #Ops    0
-PASS
-ok  	6.5840/raft1	16.932s
-=== run 16 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.0s #peers 3 #RPCs    56 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  5.4s #peers 3 #RPCs    20 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  6.0s #peers 7 #RPCs   168 #Ops    0
-PASS
-ok  	6.5840/raft1	16.898s
-=== run 17 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.1s #peers 3 #RPCs    56 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  7.5s #peers 3 #RPCs    30 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  5.5s #peers 7 #RPCs   198 #Ops    0
-PASS
-ok  	6.5840/raft1	18.496s
-=== run 18 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.1s #peers 3 #RPCs    58 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  4.6s #peers 3 #RPCs    40 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  5.7s #peers 7 #RPCs   210 #Ops    0
-PASS
-ok  	6.5840/raft1	15.813s
-=== run 19 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.1s #peers 3 #RPCs    60 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  4.9s #peers 3 #RPCs    32 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  6.1s #peers 7 #RPCs   192 #Ops    0
-PASS
-ok  	6.5840/raft1	16.595s
-=== run 20 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.0s #peers 3 #RPCs    54 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  4.5s #peers 3 #RPCs    36 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  5.6s #peers 7 #RPCs   156 #Ops    0
-PASS
-ok  	6.5840/raft1	15.223s
-=== run 21 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.0s #peers 3 #RPCs    54 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  4.5s #peers 3 #RPCs    32 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  8.2s #peers 7 #RPCs   270 #Ops    0
-PASS
-ok  	6.5840/raft1	17.938s
-=== run 22 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.0s #peers 3 #RPCs    54 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  4.5s #peers 3 #RPCs    36 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  5.6s #peers 7 #RPCs   204 #Ops    0
-PASS
-ok  	6.5840/raft1	15.629s
-=== run 23 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.1s #peers 3 #RPCs    58 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  4.4s #peers 3 #RPCs    30 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  5.6s #peers 7 #RPCs   180 #Ops    0
-PASS
-ok  	6.5840/raft1	15.495s
-=== run 24 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.1s #peers 3 #RPCs    54 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  4.5s #peers 3 #RPCs    34 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  9.5s #peers 7 #RPCs   270 #Ops    0
-PASS
-ok  	6.5840/raft1	19.377s
-=== run 25 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.1s #peers 3 #RPCs    58 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  4.5s #peers 3 #RPCs    38 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  8.0s #peers 7 #RPCs   222 #Ops    0
-PASS
-ok  	6.5840/raft1	17.994s
-=== run 26 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.1s #peers 3 #RPCs    54 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  4.5s #peers 3 #RPCs    32 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  7.3s #peers 7 #RPCs   204 #Ops    0
-PASS
-ok  	6.5840/raft1	17.401s
-=== run 27 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.0s #peers 3 #RPCs    54 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  5.0s #peers 3 #RPCs    26 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  6.0s #peers 7 #RPCs   180 #Ops    0
-PASS
-ok  	6.5840/raft1	16.559s
-=== run 28 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.1s #peers 3 #RPCs    58 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  6.1s #peers 3 #RPCs    28 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  5.8s #peers 7 #RPCs   204 #Ops    0
-PASS
-ok  	6.5840/raft1	17.613s
-=== run 29 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.1s #peers 3 #RPCs    58 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  6.4s #peers 3 #RPCs    32 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  5.6s #peers 7 #RPCs   162 #Ops    0
-PASS
-ok  	6.5840/raft1	17.278s
-=== run 30 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.0s #peers 3 #RPCs    56 #Ops    0
 Test (3A): election after network failure (reliable network)...
   ... Passed --  time  5.1s #peers 3 #RPCs    26 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  6.2s #peers 7 #RPCs   228 #Ops    0
 PASS
-ok  	6.5840/raft1	16.726s
-=== run 31 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.1s #peers 3 #RPCs    56 #Ops    0
+ok  	6.5840/raft1	5.749s
+=== run 5 ===
 Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  4.6s #peers 3 #RPCs    34 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  5.8s #peers 7 #RPCs   204 #Ops    0
+  ... Passed --  time  7.1s #peers 3 #RPCs    20 #Ops    0
 PASS
-ok  	6.5840/raft1	15.963s
-=== run 32 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.0s #peers 3 #RPCs    54 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  4.6s #peers 3 #RPCs    32 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  5.7s #peers 7 #RPCs   186 #Ops    0
-PASS
-ok  	6.5840/raft1	15.465s
-=== run 33 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.0s #peers 3 #RPCs    56 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  4.4s #peers 3 #RPCs    32 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  7.7s #peers 7 #RPCs   258 #Ops    0
-PASS
-ok  	6.5840/raft1	17.587s
-=== run 34 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.0s #peers 3 #RPCs    54 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  4.5s #peers 3 #RPCs    28 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  5.7s #peers 7 #RPCs   198 #Ops    0
-PASS
-ok  	6.5840/raft1	15.360s
-=== run 35 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.1s #peers 3 #RPCs    56 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  4.5s #peers 3 #RPCs    42 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  5.6s #peers 7 #RPCs   180 #Ops    0
-PASS
-ok  	6.5840/raft1	15.739s
-=== run 36 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.1s #peers 3 #RPCs    60 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  5.0s #peers 3 #RPCs    22 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  6.0s #peers 7 #RPCs   234 #Ops    0
-PASS
-ok  	6.5840/raft1	16.602s
-=== run 37 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.1s #peers 3 #RPCs    58 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  5.0s #peers 3 #RPCs    48 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  5.8s #peers 7 #RPCs   222 #Ops    0
-PASS
-ok  	6.5840/raft1	16.232s
-=== run 38 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.0s #peers 3 #RPCs    58 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  4.5s #peers 3 #RPCs    30 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  6.2s #peers 7 #RPCs   192 #Ops    0
-PASS
-ok  	6.5840/raft1	16.331s
-=== run 39 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.0s #peers 3 #RPCs    56 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  4.6s #peers 3 #RPCs    32 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  5.5s #peers 7 #RPCs   222 #Ops    0
-PASS
-ok  	6.5840/raft1	15.597s
-=== run 40 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.0s #peers 3 #RPCs    54 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  7.5s #peers 3 #RPCs    32 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  5.4s #peers 7 #RPCs   174 #Ops    0
-PASS
-ok  	6.5840/raft1	18.356s
-=== run 41 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.0s #peers 3 #RPCs    56 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  5.0s #peers 3 #RPCs    30 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  6.4s #peers 7 #RPCs   198 #Ops    0
-PASS
-ok  	6.5840/raft1	16.822s
-=== run 42 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.1s #peers 3 #RPCs    56 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  4.5s #peers 3 #RPCs    30 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  8.0s #peers 7 #RPCs   252 #Ops    0
-PASS
-ok  	6.5840/raft1	17.942s
-=== run 43 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.1s #peers 3 #RPCs    56 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  8.0s #peers 3 #RPCs    32 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  6.2s #peers 7 #RPCs   216 #Ops    0
-PASS
-ok  	6.5840/raft1	19.682s
-=== run 44 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.1s #peers 3 #RPCs    58 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  5.1s #peers 3 #RPCs    30 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  6.2s #peers 7 #RPCs   192 #Ops    0
-PASS
-ok  	6.5840/raft1	16.769s
-=== run 45 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.1s #peers 3 #RPCs    58 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  4.5s #peers 3 #RPCs    32 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  6.0s #peers 7 #RPCs   204 #Ops    0
-PASS
-ok  	6.5840/raft1	15.988s
-=== run 46 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.1s #peers 3 #RPCs    56 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  7.0s #peers 3 #RPCs    28 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  7.1s #peers 7 #RPCs   168 #Ops    0
-PASS
-ok  	6.5840/raft1	19.673s
-=== run 47 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.1s #peers 3 #RPCs    56 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  5.0s #peers 3 #RPCs    30 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  5.5s #peers 7 #RPCs   192 #Ops    0
-PASS
-ok  	6.5840/raft1	15.901s
-=== run 48 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.0s #peers 3 #RPCs    56 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  4.5s #peers 3 #RPCs    48 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  6.4s #peers 7 #RPCs   168 #Ops    0
-PASS
-ok  	6.5840/raft1	16.363s
-=== run 49 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.0s #peers 3 #RPCs    54 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  4.5s #peers 3 #RPCs    38 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  5.7s #peers 7 #RPCs   132 #Ops    0
-PASS
-ok  	6.5840/raft1	15.796s
-=== run 50 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.0s #peers 3 #RPCs    54 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  4.5s #peers 3 #RPCs    36 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  6.1s #peers 7 #RPCs   216 #Ops    0
-PASS
-ok  	6.5840/raft1	15.865s
-=== run 51 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.0s #peers 3 #RPCs    54 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  5.1s #peers 3 #RPCs    30 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  5.7s #peers 7 #RPCs   192 #Ops    0
-PASS
-ok  	6.5840/raft1	16.106s
-=== run 52 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.1s #peers 3 #RPCs    56 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  5.0s #peers 3 #RPCs    22 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  6.1s #peers 7 #RPCs   186 #Ops    0
-PASS
-ok  	6.5840/raft1	16.580s
-=== run 53 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.1s #peers 3 #RPCs    54 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  4.6s #peers 3 #RPCs    34 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  9.3s #peers 7 #RPCs   282 #Ops    0
-PASS
-ok  	6.5840/raft1	19.228s
-=== run 54 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.0s #peers 3 #RPCs    54 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  4.5s #peers 3 #RPCs    32 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  6.1s #peers 7 #RPCs   198 #Ops    0
-PASS
-ok  	6.5840/raft1	15.931s
-=== run 55 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.1s #peers 3 #RPCs    54 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  4.5s #peers 3 #RPCs    32 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  7.2s #peers 7 #RPCs   240 #Ops    0
-PASS
-ok  	6.5840/raft1	17.123s
-=== run 56 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.0s #peers 3 #RPCs    52 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  4.6s #peers 3 #RPCs    36 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  6.6s #peers 7 #RPCs   174 #Ops    0
-PASS
-ok  	6.5840/raft1	16.649s
-=== run 57 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.0s #peers 3 #RPCs    54 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  5.6s #peers 3 #RPCs    32 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  6.0s #peers 7 #RPCs   210 #Ops    0
-PASS
-ok  	6.5840/raft1	16.977s
-=== run 58 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.1s #peers 3 #RPCs    54 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  7.5s #peers 3 #RPCs    28 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  6.8s #peers 7 #RPCs   180 #Ops    0
-PASS
-ok  	6.5840/raft1	19.864s
-=== run 59 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.1s #peers 3 #RPCs    54 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  4.5s #peers 3 #RPCs    50 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  5.6s #peers 7 #RPCs   156 #Ops    0
-PASS
-ok  	6.5840/raft1	15.468s
-=== run 60 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.0s #peers 3 #RPCs    54 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  4.5s #peers 3 #RPCs    36 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  5.6s #peers 7 #RPCs   162 #Ops    0
-PASS
-ok  	6.5840/raft1	15.368s
-=== run 61 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.0s #peers 3 #RPCs    52 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  5.0s #peers 3 #RPCs    26 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  6.5s #peers 7 #RPCs   198 #Ops    0
-PASS
-ok  	6.5840/raft1	16.871s
-=== run 62 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.0s #peers 3 #RPCs    50 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  4.4s #peers 3 #RPCs    38 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  6.0s #peers 7 #RPCs   156 #Ops    0
-PASS
-ok  	6.5840/raft1	15.675s
-=== run 63 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.0s #peers 3 #RPCs    54 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  4.5s #peers 3 #RPCs    42 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  5.7s #peers 7 #RPCs   174 #Ops    0
-PASS
-ok  	6.5840/raft1	15.560s
-=== run 64 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.0s #peers 3 #RPCs    54 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  5.5s #peers 3 #RPCs    24 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  5.6s #peers 7 #RPCs   132 #Ops    0
-PASS
-ok  	6.5840/raft1	16.454s
-=== run 65 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.1s #peers 3 #RPCs    54 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  5.0s #peers 3 #RPCs    26 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  5.6s #peers 7 #RPCs   150 #Ops    0
-PASS
-ok  	6.5840/raft1	16.013s
-=== run 66 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.0s #peers 3 #RPCs    54 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  5.0s #peers 3 #RPCs    32 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  5.5s #peers 7 #RPCs   186 #Ops    0
-PASS
-ok  	6.5840/raft1	15.903s
-=== run 67 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.1s #peers 3 #RPCs    56 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  5.2s #peers 3 #RPCs    38 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  5.8s #peers 7 #RPCs   192 #Ops    0
-PASS
-ok  	6.5840/raft1	16.293s
-=== run 68 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.2s #peers 3 #RPCs    52 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  4.9s #peers 3 #RPCs    26 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  5.6s #peers 7 #RPCs   204 #Ops    0
-PASS
-ok  	6.5840/raft1	16.298s
-=== run 69 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.1s #peers 3 #RPCs    60 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  5.7s #peers 3 #RPCs    26 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  6.3s #peers 7 #RPCs   186 #Ops    0
-PASS
-ok  	6.5840/raft1	17.675s
-=== run 70 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.1s #peers 3 #RPCs    56 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  4.6s #peers 3 #RPCs    34 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  5.8s #peers 7 #RPCs   180 #Ops    0
-PASS
-ok  	6.5840/raft1	15.893s
-=== run 71 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.1s #peers 3 #RPCs    56 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  6.0s #peers 3 #RPCs    22 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  6.2s #peers 7 #RPCs   216 #Ops    0
-PASS
-ok  	6.5840/raft1	17.816s
-=== run 72 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.1s #peers 3 #RPCs    54 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  7.6s #peers 3 #RPCs    28 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  6.2s #peers 7 #RPCs   204 #Ops    0
-PASS
-ok  	6.5840/raft1	19.324s
-=== run 73 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.6s #peers 3 #RPCs    60 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  5.1s #peers 3 #RPCs    20 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  5.5s #peers 7 #RPCs   192 #Ops    0
-PASS
-ok  	6.5840/raft1	16.399s
-=== run 74 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.0s #peers 3 #RPCs    58 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  4.6s #peers 3 #RPCs    32 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  6.3s #peers 7 #RPCs   150 #Ops    0
-PASS
-ok  	6.5840/raft1	16.484s
-=== run 75 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.1s #peers 3 #RPCs    56 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  7.5s #peers 3 #RPCs    38 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  7.1s #peers 7 #RPCs   174 #Ops    0
-PASS
-ok  	6.5840/raft1	19.996s
-=== run 76 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.1s #peers 3 #RPCs    60 #Ops    0
+ok  	6.5840/raft1	7.636s
+=== run 6 ===
 Test (3A): election after network failure (reliable network)...
   ... Passed --  time  4.9s #peers 3 #RPCs    24 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  6.6s #peers 7 #RPCs   192 #Ops    0
 PASS
-ok  	6.5840/raft1	17.020s
-=== run 77 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.1s #peers 3 #RPCs    54 #Ops    0
+ok  	6.5840/raft1	5.660s
+=== run 7 ===
 Test (3A): election after network failure (reliable network)...
-Fatal: leader = 0
-        /Users/abhineshdahal/Documents/Raft Consensus/6.5840/src/raft1/test.go:227
-        /Users/abhineshdahal/Documents/Raft Consensus/6.5840/src/raft1/raft_test.go:88
-info: wrote visualization to /var/folders/hd/gwmpkqn560n80bbj37qxccc80000gn/T/porcupine-4250357181.html
---- FAIL: TestReElection3A (4.01s)
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  5.7s #peers 7 #RPCs   186 #Ops    0
-FAIL
-exit status 1
-FAIL	6.5840/raft1	14.528s
-=== run 78 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.0s #peers 3 #RPCs    58 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  4.5s #peers 3 #RPCs    34 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  6.0s #peers 7 #RPCs   180 #Ops    0
+  ... Passed --  time  4.5s #peers 3 #RPCs    32 #Ops    0
 PASS
-ok  	6.5840/raft1	16.024s
-=== run 79 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.1s #peers 3 #RPCs    56 #Ops    0
+ok  	6.5840/raft1	5.222s
+=== run 8 ===
 Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  4.4s #peers 3 #RPCs    30 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  6.0s #peers 7 #RPCs   186 #Ops    0
+  ... Passed --  time  5.1s #peers 3 #RPCs    32 #Ops    0
 PASS
-ok  	6.5840/raft1	16.089s
-=== run 80 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.1s #peers 3 #RPCs    60 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  6.5s #peers 3 #RPCs    28 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  5.9s #peers 7 #RPCs   162 #Ops    0
-PASS
-ok  	6.5840/raft1	17.978s
-=== run 81 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.1s #peers 3 #RPCs    56 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  5.0s #peers 3 #RPCs    34 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  5.6s #peers 7 #RPCs   216 #Ops    0
-PASS
-ok  	6.5840/raft1	16.002s
-=== run 82 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.0s #peers 3 #RPCs    56 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  4.6s #peers 3 #RPCs    26 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  6.1s #peers 7 #RPCs   246 #Ops    0
-PASS
-ok  	6.5840/raft1	16.057s
-=== run 83 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.0s #peers 3 #RPCs    56 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  5.1s #peers 3 #RPCs    40 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  5.4s #peers 7 #RPCs   150 #Ops    0
-PASS
-ok  	6.5840/raft1	15.947s
-=== run 84 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.1s #peers 3 #RPCs    56 #Ops    0
+ok  	6.5840/raft1	5.766s
+=== run 9 ===
 Test (3A): election after network failure (reliable network)...
   ... Passed --  time  4.5s #peers 3 #RPCs    42 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  6.0s #peers 7 #RPCs   180 #Ops    0
 PASS
-ok  	6.5840/raft1	16.033s
-=== run 85 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.1s #peers 3 #RPCs    60 #Ops    0
+ok  	6.5840/raft1	5.208s
+=== run 10 ===
 Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  7.5s #peers 3 #RPCs    26 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  5.8s #peers 7 #RPCs   162 #Ops    0
+  ... Passed --  time  5.0s #peers 3 #RPCs    30 #Ops    0
 PASS
-ok  	6.5840/raft1	19.104s
-=== run 86 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.2s #peers 3 #RPCs    56 #Ops    0
+ok  	6.5840/raft1	5.775s
+=== run 11 ===
 Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  4.7s #peers 3 #RPCs    24 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  6.3s #peers 7 #RPCs   186 #Ops    0
+  ... Passed --  time  5.1s #peers 3 #RPCs    40 #Ops    0
 PASS
-ok  	6.5840/raft1	16.774s
-=== run 87 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.1s #peers 3 #RPCs    58 #Ops    0
+ok  	6.5840/raft1	5.868s
+=== run 12 ===
 Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  6.5s #peers 3 #RPCs    22 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  5.6s #peers 7 #RPCs   144 #Ops    0
+  ... Passed --  time  5.0s #peers 3 #RPCs    48 #Ops    0
 PASS
-ok  	6.5840/raft1	17.579s
-=== run 88 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.1s #peers 3 #RPCs    56 #Ops    0
+ok  	6.5840/raft1	5.675s
+=== run 13 ===
 Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  6.5s #peers 3 #RPCs    28 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  5.8s #peers 7 #RPCs   168 #Ops    0
+  ... Passed --  time  4.4s #peers 3 #RPCs    30 #Ops    0
 PASS
-ok  	6.5840/raft1	17.906s
-=== run 89 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.1s #peers 3 #RPCs    56 #Ops    0
+ok  	6.5840/raft1	5.119s
+=== run 14 ===
 Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  7.0s #peers 3 #RPCs    26 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  5.8s #peers 7 #RPCs   120 #Ops    0
+  ... Passed --  time  4.6s #peers 3 #RPCs    34 #Ops    0
 PASS
-ok  	6.5840/raft1	18.306s
-=== run 90 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.0s #peers 3 #RPCs    56 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  7.2s #peers 3 #RPCs    28 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  5.7s #peers 7 #RPCs   180 #Ops    0
-PASS
-ok  	6.5840/raft1	18.351s
-=== run 91 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.0s #peers 3 #RPCs    52 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  4.4s #peers 3 #RPCs    32 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  5.7s #peers 7 #RPCs   156 #Ops    0
-PASS
-ok  	6.5840/raft1	15.718s
-=== run 92 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.1s #peers 3 #RPCs    58 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  5.1s #peers 3 #RPCs    28 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  6.5s #peers 7 #RPCs   198 #Ops    0
-PASS
-ok  	6.5840/raft1	17.257s
-=== run 93 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.0s #peers 3 #RPCs    50 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  4.5s #peers 3 #RPCs    30 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  6.1s #peers 7 #RPCs   216 #Ops    0
-PASS
-ok  	6.5840/raft1	16.011s
-=== run 94 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.0s #peers 3 #RPCs    54 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  4.5s #peers 3 #RPCs    32 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  5.6s #peers 7 #RPCs   198 #Ops    0
-PASS
-ok  	6.5840/raft1	15.454s
-=== run 95 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.0s #peers 3 #RPCs    56 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  7.2s #peers 3 #RPCs    26 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  5.5s #peers 7 #RPCs   192 #Ops    0
-PASS
-ok  	6.5840/raft1	18.237s
-=== run 96 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.1s #peers 3 #RPCs    56 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  5.5s #peers 3 #RPCs    28 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  6.0s #peers 7 #RPCs   234 #Ops    0
-PASS
-ok  	6.5840/raft1	17.305s
-=== run 97 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.1s #peers 3 #RPCs    56 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  4.5s #peers 3 #RPCs    32 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  5.4s #peers 7 #RPCs   156 #Ops    0
-PASS
-ok  	6.5840/raft1	15.698s
-=== run 98 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.0s #peers 3 #RPCs    52 #Ops    0
-Test (3A): election after network failure (reliable network)...
-  ... Passed --  time  4.6s #peers 3 #RPCs    42 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  5.7s #peers 7 #RPCs   156 #Ops    0
-PASS
-ok  	6.5840/raft1	15.621s
-=== run 99 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.0s #peers 3 #RPCs    58 #Ops    0
+ok  	6.5840/raft1	5.371s
+=== run 15 ===
 Test (3A): election after network failure (reliable network)...
   ... Passed --  time  4.6s #peers 3 #RPCs    36 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  5.5s #peers 7 #RPCs   174 #Ops    0
 PASS
-ok  	6.5840/raft1	15.857s
-=== run 100 ===
-Test (3A): initial election (reliable network)...
-  ... Passed --  time  3.1s #peers 3 #RPCs    58 #Ops    0
+ok  	6.5840/raft1	5.260s
+=== run 16 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  4.5s #peers 3 #RPCs    32 #Ops    0
+PASS
+ok  	6.5840/raft1	5.284s
+=== run 17 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  4.4s #peers 3 #RPCs    30 #Ops    0
+PASS
+ok  	6.5840/raft1	5.040s
+=== run 18 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  4.5s #peers 3 #RPCs    34 #Ops    0
+PASS
+ok  	6.5840/raft1	5.222s
+=== run 19 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  4.6s #peers 3 #RPCs    32 #Ops    0
+PASS
+ok  	6.5840/raft1	5.245s
+=== run 20 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  5.0s #peers 3 #RPCs    42 #Ops    0
+PASS
+ok  	6.5840/raft1	5.698s
+=== run 21 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  6.0s #peers 3 #RPCs    22 #Ops    0
+PASS
+ok  	6.5840/raft1	6.686s
+=== run 22 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  7.0s #peers 3 #RPCs    38 #Ops    0
+PASS
+ok  	6.5840/raft1	7.739s
+=== run 23 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  4.6s #peers 3 #RPCs    36 #Ops    0
+PASS
+ok  	6.5840/raft1	5.143s
+=== run 24 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  6.9s #peers 3 #RPCs    20 #Ops    0
+PASS
+ok  	6.5840/raft1	7.445s
+=== run 25 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  4.5s #peers 3 #RPCs    32 #Ops    0
+PASS
+ok  	6.5840/raft1	5.184s
+=== run 26 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  4.6s #peers 3 #RPCs    36 #Ops    0
+PASS
+ok  	6.5840/raft1	5.330s
+=== run 27 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  4.4s #peers 3 #RPCs    30 #Ops    0
+PASS
+ok  	6.5840/raft1	5.087s
+=== run 28 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  4.6s #peers 3 #RPCs    32 #Ops    0
+PASS
+ok  	6.5840/raft1	5.233s
+=== run 29 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  4.6s #peers 3 #RPCs    34 #Ops    0
+PASS
+ok  	6.5840/raft1	5.107s
+=== run 30 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  5.0s #peers 3 #RPCs    20 #Ops    0
+PASS
+ok  	6.5840/raft1	5.736s
+=== run 31 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  4.5s #peers 3 #RPCs    50 #Ops    0
+PASS
+ok  	6.5840/raft1	5.278s
+=== run 32 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  4.5s #peers 3 #RPCs    40 #Ops    0
+PASS
+ok  	6.5840/raft1	5.154s
+=== run 33 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  5.1s #peers 3 #RPCs    28 #Ops    0
+PASS
+ok  	6.5840/raft1	5.829s
+=== run 34 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  4.6s #peers 3 #RPCs    32 #Ops    0
+PASS
+ok  	6.5840/raft1	5.316s
+=== run 35 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  4.5s #peers 3 #RPCs    34 #Ops    0
+PASS
+ok  	6.5840/raft1	5.097s
+=== run 36 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  6.1s #peers 3 #RPCs    40 #Ops    0
+PASS
+ok  	6.5840/raft1	6.697s
+=== run 37 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  4.5s #peers 3 #RPCs    38 #Ops    0
+PASS
+ok  	6.5840/raft1	5.159s
+=== run 38 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  4.5s #peers 3 #RPCs    38 #Ops    0
+PASS
+ok  	6.5840/raft1	5.077s
+=== run 39 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  4.5s #peers 3 #RPCs    40 #Ops    0
+PASS
+ok  	6.5840/raft1	5.108s
+=== run 40 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  7.0s #peers 3 #RPCs    22 #Ops    0
+PASS
+ok  	6.5840/raft1	7.709s
+=== run 41 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  4.5s #peers 3 #RPCs    32 #Ops    0
+PASS
+ok  	6.5840/raft1	5.248s
+=== run 42 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  4.5s #peers 3 #RPCs    32 #Ops    0
+PASS
+ok  	6.5840/raft1	5.138s
+=== run 43 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  4.5s #peers 3 #RPCs    32 #Ops    0
+PASS
+ok  	6.5840/raft1	5.110s
+=== run 44 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  5.0s #peers 3 #RPCs    28 #Ops    0
+PASS
+ok  	6.5840/raft1	5.629s
+=== run 45 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  5.0s #peers 3 #RPCs    34 #Ops    0
+PASS
+ok  	6.5840/raft1	5.795s
+=== run 46 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  4.9s #peers 3 #RPCs    24 #Ops    0
+PASS
+ok  	6.5840/raft1	5.584s
+=== run 47 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  4.5s #peers 3 #RPCs    36 #Ops    0
+PASS
+ok  	6.5840/raft1	5.223s
+=== run 48 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  4.5s #peers 3 #RPCs    28 #Ops    0
+PASS
+ok  	6.5840/raft1	5.060s
+=== run 49 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  4.5s #peers 3 #RPCs    36 #Ops    0
+PASS
+ok  	6.5840/raft1	5.198s
+=== run 50 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  5.4s #peers 3 #RPCs    32 #Ops    0
+PASS
+ok  	6.5840/raft1	6.089s
+=== run 51 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  4.5s #peers 3 #RPCs    30 #Ops    0
+PASS
+ok  	6.5840/raft1	5.266s
+=== run 52 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  4.6s #peers 3 #RPCs    32 #Ops    0
+PASS
+ok  	6.5840/raft1	5.227s
+=== run 53 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  4.7s #peers 3 #RPCs    36 #Ops    0
+PASS
+ok  	6.5840/raft1	5.384s
+=== run 54 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  4.5s #peers 3 #RPCs    32 #Ops    0
+PASS
+ok  	6.5840/raft1	5.205s
+=== run 55 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  5.0s #peers 3 #RPCs    36 #Ops    0
+PASS
+ok  	6.5840/raft1	5.773s
+=== run 56 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  6.0s #peers 3 #RPCs    24 #Ops    0
+PASS
+ok  	6.5840/raft1	6.740s
+=== run 57 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  4.7s #peers 3 #RPCs    36 #Ops    0
+PASS
+ok  	6.5840/raft1	5.361s
+=== run 58 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  5.0s #peers 3 #RPCs    46 #Ops    0
+PASS
+ok  	6.5840/raft1	5.714s
+=== run 59 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  4.6s #peers 3 #RPCs    36 #Ops    0
+PASS
+ok  	6.5840/raft1	5.241s
+=== run 60 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  6.4s #peers 3 #RPCs    32 #Ops    0
+PASS
+ok  	6.5840/raft1	7.181s
+=== run 61 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  4.5s #peers 3 #RPCs    32 #Ops    0
+PASS
+ok  	6.5840/raft1	5.105s
+=== run 62 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  4.5s #peers 3 #RPCs    40 #Ops    0
+PASS
+ok  	6.5840/raft1	5.133s
+=== run 63 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  4.9s #peers 3 #RPCs    36 #Ops    0
+PASS
+ok  	6.5840/raft1	5.411s
+=== run 64 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  4.6s #peers 3 #RPCs    36 #Ops    0
+PASS
+ok  	6.5840/raft1	5.342s
+=== run 65 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  7.5s #peers 3 #RPCs    34 #Ops    0
+PASS
+ok  	6.5840/raft1	8.292s
+=== run 66 ===
 Test (3A): election after network failure (reliable network)...
   ... Passed --  time  5.1s #peers 3 #RPCs    38 #Ops    0
-Test (3A): multiple elections (reliable network)...
-  ... Passed --  time  6.0s #peers 7 #RPCs   174 #Ops    0
 PASS
-ok  	6.5840/raft1	16.648s
+ok  	6.5840/raft1	5.746s
+=== run 67 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  4.5s #peers 3 #RPCs    34 #Ops    0
+PASS
+ok  	6.5840/raft1	5.185s
+=== run 68 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  7.4s #peers 3 #RPCs    22 #Ops    0
+PASS
+ok  	6.5840/raft1	8.109s
+=== run 69 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  5.5s #peers 3 #RPCs    36 #Ops    0
+PASS
+ok  	6.5840/raft1	6.008s
+=== run 70 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  4.7s #peers 3 #RPCs    26 #Ops    0
+PASS
+ok  	6.5840/raft1	5.446s
+=== run 71 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  4.6s #peers 3 #RPCs    32 #Ops    0
+PASS
+ok  	6.5840/raft1	5.202s
+=== run 72 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  4.6s #peers 3 #RPCs    36 #Ops    0
+PASS
+ok  	6.5840/raft1	5.329s
+=== run 73 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  4.5s #peers 3 #RPCs    36 #Ops    0
+PASS
+ok  	6.5840/raft1	5.249s
+=== run 74 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  4.6s #peers 3 #RPCs    32 #Ops    0
+PASS
+ok  	6.5840/raft1	5.240s
+=== run 75 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  4.5s #peers 3 #RPCs    34 #Ops    0
+PASS
+ok  	6.5840/raft1	5.216s
+=== run 76 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  7.5s #peers 3 #RPCs    28 #Ops    0
+PASS
+ok  	6.5840/raft1	8.305s
+=== run 77 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  5.5s #peers 3 #RPCs    30 #Ops    0
+PASS
+ok  	6.5840/raft1	6.196s
+=== run 78 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  5.6s #peers 3 #RPCs    20 #Ops    0
+PASS
+ok  	6.5840/raft1	6.295s
+=== run 79 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  6.0s #peers 3 #RPCs    24 #Ops    0
+PASS
+ok  	6.5840/raft1	6.725s
+=== run 80 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  4.6s #peers 3 #RPCs    32 #Ops    0
+PASS
+ok  	6.5840/raft1	5.345s
+=== run 81 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  5.0s #peers 3 #RPCs    28 #Ops    0
+PASS
+ok  	6.5840/raft1	5.655s
+=== run 82 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  4.5s #peers 3 #RPCs    44 #Ops    0
+PASS
+ok  	6.5840/raft1	5.208s
+=== run 83 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  4.5s #peers 3 #RPCs    34 #Ops    0
+PASS
+ok  	6.5840/raft1	5.178s
+=== run 84 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  4.9s #peers 3 #RPCs    34 #Ops    0
+PASS
+ok  	6.5840/raft1	5.602s
+=== run 85 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  4.5s #peers 3 #RPCs    36 #Ops    0
+PASS
+ok  	6.5840/raft1	5.278s
+=== run 86 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  5.0s #peers 3 #RPCs    26 #Ops    0
+PASS
+ok  	6.5840/raft1	5.512s
+=== run 87 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  4.6s #peers 3 #RPCs    32 #Ops    0
+PASS
+ok  	6.5840/raft1	5.217s
+=== run 88 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  4.6s #peers 3 #RPCs    32 #Ops    0
+PASS
+ok  	6.5840/raft1	5.215s
+=== run 89 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  5.0s #peers 3 #RPCs    28 #Ops    0
+PASS
+ok  	6.5840/raft1	5.609s
+=== run 90 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  5.5s #peers 3 #RPCs    34 #Ops    0
+PASS
+ok  	6.5840/raft1	6.236s
+=== run 91 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  4.9s #peers 3 #RPCs    24 #Ops    0
+PASS
+ok  	6.5840/raft1	5.492s
+=== run 92 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  5.0s #peers 3 #RPCs    24 #Ops    0
+PASS
+ok  	6.5840/raft1	5.778s
+=== run 93 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  5.1s #peers 3 #RPCs    36 #Ops    0
+PASS
+ok  	6.5840/raft1	5.746s
+=== run 94 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  4.6s #peers 3 #RPCs    38 #Ops    0
+PASS
+ok  	6.5840/raft1	5.357s
+=== run 95 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  4.5s #peers 3 #RPCs    44 #Ops    0
+PASS
+ok  	6.5840/raft1	5.281s
+=== run 96 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  4.5s #peers 3 #RPCs    30 #Ops    0
+PASS
+ok  	6.5840/raft1	5.173s
+=== run 97 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  8.1s #peers 3 #RPCs    30 #Ops    0
+PASS
+ok  	6.5840/raft1	8.763s
+=== run 98 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  4.5s #peers 3 #RPCs    28 #Ops    0
+PASS
+ok  	6.5840/raft1	5.176s
+=== run 99 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  6.0s #peers 3 #RPCs    30 #Ops    0
+PASS
+ok  	6.5840/raft1	6.769s
+=== run 100 ===
+Test (3A): election after network failure (reliable network)...
+  ... Passed --  time  4.6s #peers 3 #RPCs    34 #Ops    0
+PASS
+ok  	6.5840/raft1	5.351s
