@@ -157,17 +157,23 @@ type RequestVoteReply struct {
 }
 
 type AppendEntriesArgs struct { 
+	// 3A
 	LeaderTerm int 
-	LeaderId int 
+	LeaderId int
+	
+	// 3B 
+	PrevLogIndex int 
+	PrevLogTerm int 
+	Entries []LogEntry
 }
 
 type AppendEntriesReply struct { 
+	// 3A
 	ReplyTerm int
 	Success bool
 }
 
 func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply) {
-
 			rf.mu.Lock()
 			defer rf.mu.Unlock()
 
@@ -291,7 +297,8 @@ func (rf *Raft) Start(command interface{}) (int, int, bool) {
 
 		curLog := LogEntry{ 
 		Command : command,
-		Term : rf.currentTerm, } 
+		Term : rf.currentTerm, 
+		} 
 
 		rf.log = append(rf.log, curLog)
 			
@@ -303,7 +310,7 @@ func (rf *Raft) Start(command interface{}) (int, int, bool) {
 
 
 
-func (rf *Raft) ticker(ch_msg) {
+func (rf *Raft) ticker() {
 	
 	for true {
 		
@@ -325,16 +332,35 @@ func (rf *Raft) ticker(ch_msg) {
 
 			for peer := range rf.peers {
 
-				// no need to send heart beat to myself
+				// skip sending heart-beat to self
 				if peer == rf.me {
 					continue
 				}
-
+				
+				// 3A notes: 
 				// fire-and-forget: never wait for replies. a Call() to a
 				// disconnected peer can block up to ~7s (labrpc long delays),
 				// and waiting would stall heartbeats to the healthy peers,
 				// letting them time out and start needless elections.
 				// pass in copies of appendRPC otherwise everything will write itself in a single response struct
+
+
+				// 3B notes: 
+				// Read this before Next session : 				
+					// So I've mostly figured out what's going on with log replication
+					// Also, we are sending appendRPC when the node is already a leader, therefore this part of the code holds log
+					// we send out entries, user appends using entries[] using AppendRPCs
+					
+					//Confusing parts,
+						// How do we replicate data in the follower, How do we commit data, How do we apply command to state machine. 
+					
+					// To start coding for next session implement this in the appendRPC's 
+						// take the log values (user requests)
+						// log[nextIndex[i]]:] --> this holds the value that that server does not have
+						// send the remaining log to the follower via RPC (to entries[])
+						// after copying update the nextIndex and matchIndex 
+
+
 				go func (p int, req AppendEntriesArgs, res AppendEntriesReply) {
 					if rf.sendAppendEntries(p, &req, &res) {
 
@@ -399,7 +425,6 @@ func (rf *Raft) ticker(ch_msg) {
 			rf.mu.Unlock() 
 				done := make(chan struct{})
 
-			// race condition here? rf.peers can change, what will happen if one of the peers breaks? 
 			for i := range rf.peers { 
 				// if waiting for vote, append RPC is encountered then we stop the vote. 
 				rf.mu.Lock()
@@ -415,7 +440,6 @@ func (rf *Raft) ticker(ch_msg) {
 					continue 
 				}
 			
-			//wg.Add(1)
 			go func(i int, req RequestVoteArgs, res RequestVoteReply) {
 				if rf.sendRequestVote(i, &req, &res) {
 
@@ -500,27 +524,31 @@ func (rf *Raft) ticker(ch_msg) {
 // for any long-running work.
 func Make(peers []*labrpc.ClientEnd, me int,
 	persister *tester.Persister, applyCh chan raftapi.ApplyMsg) raftapi.Raft {
-	rf := &Raft{}
-	rf.peers = peers
+	rf          := &Raft{}
+	rf.peers     = peers
 	rf.persister = persister
-	rf.me = me
+	rf.me        = me
 
 	// Your initialization code here (3A, 3B, 3C).
 	
 	// 3A 
 	rf.currentTerm = 0 
-	rf.votedFor = -1 
-	rf.role = Follower
-	rf.lastHeard = time.Now()
+	rf.votedFor    = -1 
+	rf.role        = Follower
+	rf.lastHeard   = time.Now()
 
 	// 3B 
-	rf.log = []LogEntry{{Term : 0}}
+	rf.log         = []LogEntry{{Term : 0}}
+	rf.commitIndex = 0
+	rf.lastApplied = 0
+	rf.nextIndex   = make([]int, len(rf.peers))
+	rf.matchIndex  = make([]int, len(rf.peers))
 
 	// initialize from state persisted before a crash
 	rf.readPersist(persister.ReadRaftState())
 
 	// start ticker goroutine to start elections
-	go rf.ticker(&applyCh)
+	go rf.ticker()
 
 
 	return rf
