@@ -26,6 +26,13 @@ const (
     Leader    = 2
 )
 
+// 3B 
+type LogEntry struct { 
+	Command interface{}
+	Term int // term when entry was recieved
+}
+
+
 // A Go object implementing a single Raft peer.
 type Raft struct {
 	mu        sync.Mutex          // Lock to protect shared access to this peer's state
@@ -37,17 +44,18 @@ type Raft struct {
 	// Look at the paper's Figure 2 for a description of what
 	// state a Raft server must maintain.
 	
-	// persistent state on all servers 
-
-	// when time passes we incement currentTerm and then the leader becomes candidates
-	// it will then start sending RequestVoteRPC 
+	// 3A --> Election
 	currentTerm int 
-	
-	// we keep track fo the leader by this string 
 	votedFor int 
-	role int // Foll, Cand, Lead
+	role int 
 	lastHeard time.Time
 
+	// 3B --> Log Replication 
+	log []LogEntry
+	commitIndex int 
+	lastApplied int 
+	nextIndex []int 
+	matchIndex []int
 }
 
 // return currentTerm and whether this server
@@ -102,7 +110,7 @@ func (rf *Raft) readPersist(data []byte) {
 	// d := labgob.NewDecoder(r)
 	// var xxx
 	// var yyy
-	// if d.Decode(&xxx) != nil ||
+	// if d.Decode(&xxx) != nil ||go test -run 3B -count=1
 	//    d.Decode(&yyy) != nil {
 	//   error...
 	// } else {
@@ -142,17 +150,12 @@ type RequestVoteArgs struct {
 // field names must start with capital letters!
 type RequestVoteReply struct {
 	// Your data here (3A).
-
-	// did they vote or no
-	// if yes then update something
-	
 	// if ReplyTerm > rf.CurrentTerm, the candidate is stale 
 	ReplyTerm int  
 	VoteGranted bool
 
 }
 
-// this just sends out heartbeats, so no need to worry right now
 type AppendEntriesArgs struct { 
 	LeaderTerm int 
 	LeaderId int 
@@ -163,7 +166,6 @@ type AppendEntriesReply struct {
 	Success bool
 }
 
-// defined Jun1 
 func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply) {
 
 			rf.mu.Lock()
@@ -273,33 +275,35 @@ func (rf *Raft) sendRequestVote(server int, args *RequestVoteArgs, reply *Reques
 // term. the third return value is true if this server believes it is
 // the leader.
 func (rf *Raft) Start(command interface{}) (int, int, bool) {
-	index := -1
+	index := -1 
 	term := -1
 	isLeader := true
 
 	// Your code here (3B).
 
+	rf.mu.Lock()
+	defer rf.mu.Unlock()
 
+		if rf.role != Leader { 
+			return -1,-1, false 
+		}
+		curIndx := len(rf.log)
+
+		curLog := LogEntry{ 
+		Command : command,
+		Term : rf.currentTerm, } 
+
+		rf.log = append(rf.log, curLog)
+			
+		term = rf.currentTerm
+		index = curIndx + 1 
+	
 	return index, term, isLeader
 }
 
 
 
-
-// debugging session 1 :
-	/* 
-	Error Occured with TestInitialElection3A --> Fatal: expected one leader, got none
-	Surprising Error : The previous error stopped occuring without any changes, new error --> Warning : Data Race 
-		(even with changed error my the error hypothesis remains same)
-
-
-		1. Check if I'm testing this correctly (done, conclusion : my testing method is robust and valid as per the instructions of the course) 
-		2. Error Hypothesis 1: the error would most probably house in ticker() or Make() 
-			(Note: handle race conditions in this place)
-
-	*/ 
-
-func (rf *Raft) ticker() {
+func (rf *Raft) ticker(ch_msg) {
 	
 	for true {
 		
@@ -352,10 +356,6 @@ func (rf *Raft) ticker() {
 			// skips the candidate's election logic after sending heatbeats to all other server
 			continue
 		}
-
-
-
-
 
 
 		// Follower -> Candidate 
@@ -483,10 +483,6 @@ func (rf *Raft) ticker() {
 			close(done)
 		}
 
-
-
-
-
 	}
 }
 
@@ -510,16 +506,21 @@ func Make(peers []*labrpc.ClientEnd, me int,
 	rf.me = me
 
 	// Your initialization code here (3A, 3B, 3C).
+	
+	// 3A 
 	rf.currentTerm = 0 
 	rf.votedFor = -1 
 	rf.role = Follower
 	rf.lastHeard = time.Now()
 
+	// 3B 
+	rf.log = []LogEntry{{Term : 0}}
+
 	// initialize from state persisted before a crash
 	rf.readPersist(persister.ReadRaftState())
 
 	// start ticker goroutine to start elections
-	go rf.ticker()
+	go rf.ticker(&applyCh)
 
 
 	return rf
