@@ -352,13 +352,45 @@ func (rf *Raft) ticker() {
 					// we send out entries, user appends using entries[] using AppendRPCs
 					
 					//Confusing parts,
-						// How do we replicate data in the follower, How do we commit data, How do we apply command to state machine. 
+						// How do we replicate data in the follower.
+						// Follower will recieve RPC, When it recieves RPC, update it's log to get that RPC
+						''' 
+						// In the follower: 
+
+						log = append(log,entries...)
+						cur_indx = rf.me 
+
+
+						// what is this 
+						// From Paper, figure 2 : for each server, index of the next log entry to send to that server (initialized to leader last log index + 1)
+						nextIndex[] 
+
+						// update the current log and then update the index 
+						matchIndex[cur_index] = len(log)-1
+
+						for follower
+						// leaderTerm == rf.me and nextIndex[cur_index] == leaderLogIndex , this implied all the previous values is same 
+						 
+						'''
+						// How do we commit data
+						// 
+						// 
+						//  How do we apply command to state machine. 
+						// --> I'm assuming that commands are not applied to state machines right now. 
+
+
+							
 					
 					// To start coding for next session implement this in the appendRPC's 
-						// take the log values (user requests)
-						// log[nextIndex[i]]:] --> this holds the value that that server does not have
-						// send the remaining log to the follower via RPC (to entries[])
-						// after copying update the nextIndex and matchIndex 
+						// nextIndex --> the next index that the leader will send to the follower 
+						// initially nextIndex = len(log) --> [1,2,3,4](x), initially assigned at position (x). 
+						// if follower is inconsistent with leader, the appendEntries will failand leader will decrement nextIndex 
+						// leader incrementally decreases nextIndex for that follower 
+						//
+						//  this protocol can be reduce the number of rejectedAppendEntries RPC
+						// 			optimization --> 1. the follower can include the term of conflicting entry 
+						// 							 2. the first index it stores for that term
+						// 			
 
 
 				go func (p int, req AppendEntriesArgs, res AppendEntriesReply) {
@@ -371,7 +403,14 @@ func (rf *Raft) ticker() {
 							rf.votedFor = -1
 							rf.role = Follower
 							rf.lastHeard = time.Now()
+						} else { 
+							// this condition verifies that this is the current leader
+							// send logEntries from here 
+							
+
 						}
+
+
 						rf.mu.Unlock()
 					}
 
