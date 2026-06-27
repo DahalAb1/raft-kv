@@ -30,6 +30,7 @@ const (
 type LogEntry struct { 
 	Command interface{}
 	Term int // term when entry was recieved
+	Index int 
 }
 
 
@@ -54,7 +55,7 @@ type Raft struct {
 	log []LogEntry
 	commitIndex int 
 	lastApplied int 
-	nextIndex []int 
+	nextIndex []int
 	matchIndex []int
 }
 
@@ -140,9 +141,13 @@ func (rf *Raft) Snapshot(index int, snapshot []byte) {
 // example RequestVote RPC arguments structure.
 // field names must start with capital letters!
 type RequestVoteArgs struct {
-	// Your data here (3A, 3B).
+	// 3A,
 	CandidateTerm int 
 	CandidateId int 
+
+	// 3B
+	LastLogIndex int 
+	LastLogTerm int 
 
 }
 
@@ -164,12 +169,15 @@ type AppendEntriesArgs struct {
 	// 3B 
 	PrevLogIndex int 
 	PrevLogTerm int 
-	Entries []LogEntry
+	Entries []LogEntry 
+	LeaderCommit int 
 }
 
 type AppendEntriesReply struct { 
 	// 3A
 	ReplyTerm int
+	
+	// 3B
 	Success bool
 }
 
@@ -179,8 +187,10 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply
 
 		// stale leader, here we do not reset election timer
 			if args.LeaderTerm < rf.currentTerm {
-				reply.Success = false
 				reply.ReplyTerm = rf.currentTerm
+
+				// fig 2: Reciever Implementation, Reply false if term < currentTerm
+				reply.Success = false 
 				return
 			}
 
@@ -193,9 +203,20 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply
 
 		// heard from the leader, reset the election timer
 			rf.lastHeard = time.Now()
-
-			reply.Success = true
 			reply.ReplyTerm = rf.currentTerm
+
+			
+			if len(rf.log) - 1 >= args.PrevLogIndex && rf.log[args.PrevLogIndex].Term == args.PrevLogTerm { 
+					rf.log = append(rf.log[:args.PrevLogIndex+1], args.Entries...)		
+					reply.Success = true 
+			} else {
+				reply.Success = false
+			}
+
+			// we have to keep track of the minimum commit, therefore the following
+			if reply.Success && args.LeaderCommit > rf.commitIndex {
+				rf.commitIndex = min(args.LeaderCommit, len(rf.log)-1)
+			}
 }
 
 func (rf *Raft) sendAppendEntries(server int, args *AppendEntriesArgs, reply *AppendEntriesReply) bool { 
@@ -216,11 +237,27 @@ func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
 		rf.role = Follower
 	}
 
+	// comparing term 
 	if args.CandidateTerm < rf.currentTerm {
 		reply.VoteGranted = false
 		reply.ReplyTerm = rf.currentTerm
 		return 
 	}
+
+	// This condition fulfills: is the candidate's log greater, and is the candidate's log most up to date? 
+	// we first compare the term, if the candidate's greater then we konw it's most up to date
+	// if the term is same of the candidate, we will check the size of the index to figure out if the candidate is most up to date. 
+	// this preserves the log completeness property. 
+	isValid := (args.LastLogTerm > rf.currentTerm || (args.LastLogTerm == rf.currentTerm && args.LastLogIndex > len(rf.log) -1))
+	// can we vote? 
+	voteAvaliable := (rf.votedFor == -1 || rf.votedFor == args.CandidateId) 
+	// comparing log 
+	if !voteAvaliable || !isValid { 
+		reply.VoteGranted = false
+		reply.ReplyTerm = rf.currentTerm
+		return 
+	}
+
 	
 	if rf.votedFor == -1 || rf.votedFor == args.CandidateId {
 
@@ -293,17 +330,19 @@ func (rf *Raft) Start(command interface{}) (int, int, bool) {
 		if rf.role != Leader { 
 			return -1,-1, false 
 		}
+		// the new entry takes the next free slot
 		curIndx := len(rf.log)
 
-		curLog := LogEntry{ 
+		curLog := LogEntry{
 		Command : command,
-		Term : rf.currentTerm, 
-		} 
+		Term : rf.currentTerm,
+		Index : curIndx,
+		}
 
 		rf.log = append(rf.log, curLog)
-			
+
 		term = rf.currentTerm
-		index = curIndx + 1 
+		index = curIndx
 	
 	return index, term, isLeader
 }
@@ -323,74 +362,28 @@ func (rf *Raft) ticker() {
 			// wait 100ms to send request.
 			time.Sleep(100 * time.Millisecond)
 
-			appendRPCreq := AppendEntriesArgs {
-					LeaderTerm : term,
-					LeaderId : rf.me,
-						}
-
-			appendRPCres := AppendEntriesReply{}
-
 			for peer := range rf.peers {
 
 				// skip sending heart-beat to self
 				if peer == rf.me {
 					continue
 				}
+
+				// build this follower's request from its own nextIndex:
+				rf.mu.Lock()
+				prevIndex := rf.nextIndex[peer] - 1
+				appendRPCreq := AppendEntriesArgs {
+					LeaderTerm   : term,
+					LeaderId     : rf.me,
+					PrevLogIndex : prevIndex,
+					PrevLogTerm  : rf.log[prevIndex].Term,
+					Entries      : append([]LogEntry{}, rf.log[rf.nextIndex[peer]:]...),
+					LeaderCommit : rf.commitIndex,
+				}
+				appendRPCres := AppendEntriesReply{}
+				rf.mu.Unlock()
 				
-				// 3A notes: 
-				// fire-and-forget: never wait for replies. a Call() to a
-				// disconnected peer can block up to ~7s (labrpc long delays),
-				// and waiting would stall heartbeats to the healthy peers,
-				// letting them time out and start needless elections.
-				// pass in copies of appendRPC otherwise everything will write itself in a single response struct
-
-
-				// 3B notes: 
-				// Read this before Next session : 				
-					// So I've mostly figured out what's going on with log replication
-					// Also, we are sending appendRPC when the node is already a leader, therefore this part of the code holds log
-					// we send out entries, user appends using entries[] using AppendRPCs
-					
-					//Confusing parts,
-						// How do we replicate data in the follower.
-						// Follower will recieve RPC, When it recieves RPC, update it's log to get that RPC
-						''' 
-						// In the follower: 
-
-						log = append(log,entries...)
-						cur_indx = rf.me 
-
-
-						// what is this 
-						// From Paper, figure 2 : for each server, index of the next log entry to send to that server (initialized to leader last log index + 1)
-						nextIndex[] 
-
-						// update the current log and then update the index 
-						matchIndex[cur_index] = len(log)-1
-
-						for follower
-						// leaderTerm == rf.me and nextIndex[cur_index] == leaderLogIndex , this implied all the previous values is same 
-						 
-						'''
-						// How do we commit data
-						// 
-						// 
-						//  How do we apply command to state machine. 
-						// --> I'm assuming that commands are not applied to state machines right now. 
-
-
-							
-					
-					// To start coding for next session implement this in the appendRPC's 
-						// nextIndex --> the next index that the leader will send to the follower 
-						// initially nextIndex = len(log) --> [1,2,3,4](x), initially assigned at position (x). 
-						// if follower is inconsistent with leader, the appendEntries will failand leader will decrement nextIndex 
-						// leader incrementally decreases nextIndex for that follower 
-						//
-						//  this protocol can be reduce the number of rejectedAppendEntries RPC
-						// 			optimization --> 1. the follower can include the term of conflicting entry 
-						// 							 2. the first index it stores for that term
-						// 			
+				
 
 
 				go func (p int, req AppendEntriesArgs, res AppendEntriesReply) {
@@ -398,25 +391,62 @@ func (rf *Raft) ticker() {
 
 						// follower has a higher term: we are a stale leader, so update
 						rf.mu.Lock()
+						defer rf.mu.Unlock()
+
 						if res.ReplyTerm > rf.currentTerm {
 							rf.currentTerm = res.ReplyTerm
 							rf.votedFor = -1
 							rf.role = Follower
 							rf.lastHeard = time.Now()
-						} else { 
-							// this condition verifies that this is the current leader
-							// send logEntries from here 
-							
-
+							return 
 						}
 
+						if res.Success  == false { 	
+								rf.nextIndex[p] -= 1 
+						} else { 
+							rf.matchIndex[p] = req.PrevLogIndex + len(req.Entries) 
+							rf.nextIndex[p] = rf.matchIndex[p] + 1 
+						}
 
-						rf.mu.Unlock()
 					}
 
 				}(peer, appendRPCreq, appendRPCres)
 
 			}
+
+			// majority. only commit entries from the current term 
+			rf.mu.Lock()
+			for n := len(rf.log) - 1; n > rf.commitIndex; n-- {
+				
+				// checking if the new server has recieved new log entries
+				if rf.log[n].Term != rf.currentTerm {
+					continue
+				}
+
+				// checking if the new server has replicated new log entries to majority
+				
+				count := 1 // replicated to ourselves, therefore, count ourselves
+				for p := range rf.peers {
+					// skip ourselves in the loop as we've already counted ourselves
+					if p == rf.me { 
+						continue 
+					}
+					
+					// if matchIndex (highest replicated log entry), if log entry has been replicated, if index is equal or greater 
+					// count it because we know it has been replicated
+					// we are trying ot guess how many servers have the new log entries appended
+					if rf.matchIndex[p] >= n {
+						count++
+					}
+				}
+
+				// if count is greater than the no of peers, which means if the data has been replicated on majority of servers 
+				// set the commit index to n, because we know n has been committed in majority of servers
+				if count > len(rf.peers)/2 {
+					rf.commitIndex = n
+				}
+			}
+			rf.mu.Unlock()
 
 			// skips the candidate's election logic after sending heatbeats to all other server
 			continue
@@ -577,11 +607,17 @@ func Make(peers []*labrpc.ClientEnd, me int,
 	rf.lastHeard   = time.Now()
 
 	// 3B 
-	rf.log         = []LogEntry{{Term : 0}}
+	rf.log         = []LogEntry{{Term : 0, Index : 0}}
 	rf.commitIndex = 0
 	rf.lastApplied = 0
 	rf.nextIndex   = make([]int, len(rf.peers))
 	rf.matchIndex  = make([]int, len(rf.peers))
+
+	// initially have nextIndex and matchIndex
+	for p := range peers{ 
+		rf.nextIndex[p] = len(rf.log) 
+		rf.matchIndex[p] = 0
+	}
 
 	// initialize from state persisted before a crash
 	rf.readPersist(persister.ReadRaftState())
@@ -589,6 +625,26 @@ func Make(peers []*labrpc.ClientEnd, me int,
 	// start ticker goroutine to start elections
 	go rf.ticker()
 
+	go func(){
+		// apply data to the state machine 
+		for true { 
+			rf.mu.Lock()
+			if rf.commitIndex > rf.lastApplied {
+				rf.lastApplied ++ 
+				cmd := rf.log[rf.lastApplied].Command
+				indx := rf.log[rf.lastApplied].Index
+				rf.mu.Unlock()
 
+				// applyCh is unbufferece, a secnd on it waits until someone on the other end takes the value. 
+				applyCh <- raftapi.ApplyMsg{CommandValid: true, Command: cmd, CommandIndex: indx}
+			} else { 
+				rf.mu.Unlock()
+
+				// nothing new to apply. without a pause this loop would re-check the
+				// same thing millions of times a second and hog the CPU. nap 10ms,
+				// then check again.
+				time.Sleep(10 * time.Millisecond)
+			}}
+	}()
 	return rf
 }
