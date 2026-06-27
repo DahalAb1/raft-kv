@@ -248,7 +248,7 @@ func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
 	// we first compare the term, if the candidate's greater then we konw it's most up to date
 	// if the term is same of the candidate, we will check the size of the index to figure out if the candidate is most up to date. 
 	// this preserves the log completeness property. 
-	isValid := (args.LastLogTerm > rf.currentTerm || (args.LastLogTerm == rf.currentTerm && args.LastLogIndex > len(rf.log) -1))
+	isValid := (args.LastLogTerm > rf.log[len(rf.log)-1].Term  || (args.LastLogTerm == rf.log[len(rf.log)-1].Term && args.LastLogIndex >= len(rf.log) -1))
 	// can we vote? 
 	voteAvaliable := (rf.votedFor == -1 || rf.votedFor == args.CandidateId) 
 	// comparing log 
@@ -351,10 +351,12 @@ func (rf *Raft) Start(command interface{}) (int, int, bool) {
 
 func (rf *Raft) ticker() {
 	
-	for true {
-		
+	for {
+		// pause each iteration so the follower path doesn't busy-spin
+		time.Sleep(10 * time.Millisecond)
+
 		rf.mu.Lock()
-			role := rf.role 
+			role := rf.role
 			term := rf.currentTerm
 		rf.mu.Unlock()
 
@@ -478,20 +480,26 @@ func (rf *Raft) ticker() {
 				rf.votedFor = rf.me
 				rf.currentTerm ++
 				term:= rf.currentTerm
+
+				// 3B 
+				lastLogIndx := len(rf.log) - 1 
+				lastLogTerm := rf.log[lastLogIndx].Term
 			rf.mu.Unlock()
 
 		// send request vote RPC
 			reqRPC := RequestVoteArgs{ 
 					CandidateTerm : term, 
-					CandidateId : rf.me, 
+					CandidateId : rf.me,
+
+					// 3B 
+					LastLogIndex: lastLogIndx,
+					LastLogTerm: lastLogTerm,
 				}
 			resRPC := RequestVoteReply{}
 			
-			// locking here to create no of channels, here i've put safety to ensure that changes in rf.peers won't affect our election
-			rf.mu.Lock()
+
 				noPeers := len(rf.peers)
 				ch := make(chan int, noPeers)
-			rf.mu.Unlock() 
 				done := make(chan struct{})
 
 			for i := range rf.peers { 
@@ -547,7 +555,7 @@ func (rf *Raft) ticker() {
 				select {
 				case <-ch: // a vote arrived
 					votes++
-					if votes >= noPeers/2+1 {
+					if votes >= (noPeers/2)+1 {
 						won = true
 						break countLoop
 					}
@@ -568,6 +576,13 @@ func (rf *Raft) ticker() {
 				rf.mu.Lock()
 				if rf.role == Candidate {
 					rf.role = Leader
+					// when the candidate becomes the leader we'd have to
+					// re initialize rf.nextIndex[i] and rf.matchIndex[i]
+
+					for i:= range rf.peers { 
+						rf.nextIndex[i] = len(rf.log)
+						rf.matchIndex[i] = 0 
+					}
 				}
 				rf.mu.Unlock()
 			}
