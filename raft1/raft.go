@@ -402,11 +402,22 @@ func (rf *Raft) ticker() {
 							rf.lastHeard = time.Now()
 							return 
 						}
+						
+						
+						// drop replies from servers that disconnected and are still accepting past replies 
+						// reply should only be valid for the term it is requesting that term in 
+						// this guards against delay in client response, if leader fails and becomes leader again, and recieves old term's requests. 
+						if rf.role != Leader || rf.currentTerm != req.LeaderTerm { 
+							return 
+						}
 
 						if res.Success  == false { 	
 								rf.nextIndex[p] -= 1 
 						} else { 
-							rf.matchIndex[p] = req.PrevLogIndex + len(req.Entries) 
+
+							// to prevent any backward change in the leader's matchIndex 
+							// some stale requests could change the matchIndex to a lower value, and it should never go backward
+							rf.matchIndex[p] = max(rf.matchIndex[p], req.PrevLogIndex + len(req.Entries))
 							rf.nextIndex[p] = rf.matchIndex[p] + 1 
 						}
 
