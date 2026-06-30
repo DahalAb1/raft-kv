@@ -361,8 +361,6 @@ func (rf *Raft) ticker() {
 		rf.mu.Unlock()
 
 		if role == Leader {
-			// wait 100ms to send request.
-			time.Sleep(100 * time.Millisecond)
 
 			for peer := range rf.peers {
 
@@ -407,12 +405,19 @@ func (rf *Raft) ticker() {
 						// drop replies from servers that disconnected and are still accepting past replies 
 						// reply should only be valid for the term it is requesting that term in 
 						// this guards against delay in client response, if leader fails and becomes leader again, and recieves old term's requests. 
+
+
+						// A stale reply from a follower can incorrectly cause the leader to update nextIndex and matchIndex. 
+						// The leader may then believe that the follower has a valid copy of the current log entry, 
+						// even though the reply only confirmed an old request from a previous term.
 						if rf.role != Leader || rf.currentTerm != req.LeaderTerm { 
 							return 
 						}
 
 						if res.Success  == false { 	
+							if rf.nextIndex[p] > 1 { 
 								rf.nextIndex[p] -= 1 
+							} 
 						} else { 
 
 							// to prevent any backward change in the leader's matchIndex 
@@ -420,11 +425,15 @@ func (rf *Raft) ticker() {
 							rf.matchIndex[p] = max(rf.matchIndex[p], req.PrevLogIndex + len(req.Entries))
 							rf.nextIndex[p] = rf.matchIndex[p] + 1 
 						}
+					
+
+
 
 					}
 
 				}(peer, appendRPCreq, appendRPCres)
 
+				// after sending appendEntries, wait 100 seconds. 
 			}
 
 			// majority. only commit entries from the current term 
@@ -460,7 +469,10 @@ func (rf *Raft) ticker() {
 				}
 			}
 			rf.mu.Unlock()
+			
 
+			// sleep for 100ms before sending another AppendRPC, the lab only accpets appendRPC 10 times per second. 
+			time.Sleep(100 * time.Millisecond)
 			// skips the candidate's election logic after sending heatbeats to all other server
 			continue
 		}
@@ -474,7 +486,7 @@ func (rf *Raft) ticker() {
 		curTime := time.Now()
 		elasped := curTime.Sub(lastMoment)
 
-		if elasped.Milliseconds() > 400 { 
+		if elasped.Milliseconds() >  400 { 
 			// wait 50 - 300 seconds to start election, to minimize 2 servers becoming candidate at the same time 
 			ms := 50 + (rand.Int63() % 300)
 			time.Sleep(time.Duration(ms) * time.Millisecond)
