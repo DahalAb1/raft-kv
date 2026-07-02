@@ -503,6 +503,7 @@ func (rf *Raft) ticker() {
 				rf.votedFor = rf.me
 				rf.currentTerm ++
 				term:= rf.currentTerm
+				rf.lastHeard = time.Now()
 
 				// 3B 
 				lastLogIndx := len(rf.log) - 1 
