@@ -207,15 +207,63 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply
 
 			
 			if len(rf.log) - 1 >= args.PrevLogIndex && rf.log[args.PrevLogIndex].Term == args.PrevLogTerm { 
-					rf.log = append(rf.log[:args.PrevLogIndex+1], args.Entries...)		
-					reply.Success = true 
+					// instead of trunctate lets walk 
+
+					// I had initially implemented this condition by simply truncating the value, which was obvious but network . Why truncate does not work : 
+					/**
+						Network connection is flaky, sometimes we recieve data serially, sometimes we
+						don't. When we run go routines, 2 different RPC's A and B, where A was sent to
+						the follower before B, B could arrive faster than A. This shows us that we
+						shoud not Trust network connection. In this specific situation if B arrives
+						before A and if B has data that was not present in A, then B would open this
+						condition and then change the log's value. The log grows to a new last index
+						and could be committed by the leader, and applied to the state machine. Now
+						what if A arrives, after B's RPC was committed, and B's data has applied
+						command to state machine. That would be a problem, as the RPC will trigger
+						this condition because the index and the term is correct — and the truncate
+						below would delete the committed entry from our log. A committed entry must
+						never be lost.
+
+						To avoid this problem we take steps to replicate log from the leader to the
+						follower. We look at every log entry from previousIndex, and only remove when
+						there's a real conflict (same index, different term), and only add entries we
+						are missing. Same index and same term means we already have it, so we touch
+						nothing — a stale shorter RPC becomes a no-op. This will ensure committed data
+						stays consistent forever, not just within the term.
+					**/
+					
+					
+					// we'll start from PrevLogIndex+1 (Entries[0]'s slot), one slot per entry.
+					for i := args.PrevLogIndex + 1; i <= args.PrevLogIndex + len(args.Entries); i++ {
+						entryTerm := args.Entries[i - args.PrevLogIndex - 1].Term
+
+						// slot doesn't exist: our log ends here, append the rest and stop
+						if i >= len(rf.log) {
+							rf.log = append(rf.log, args.Entries[i - args.PrevLogIndex - 1:]...)
+							break
+						}
+
+						// same index, same term: we already have it, touch nothing
+						if rf.log[i].Term == entryTerm {
+							continue
+						}
+
+						// conflict: same index, different term. everything from here on
+						// is a dead branch — truncate it and take the leader's entries
+						rf.log = append(rf.log[:i], args.Entries[i - args.PrevLogIndex - 1:]...)
+						break
+					}
+
+					reply.Success = true
 			} else {
 				reply.Success = false
 			}
 
-			// we have to keep track of the minimum commit, therefore the following
+			// we have to keep track of the minimum commit, therefore the following.
+			// clamp to the last entry THIS RPC vouched for — our log may keep a longer
+			// tail the leader said nothing about, and we must not commit into it
 			if reply.Success && args.LeaderCommit > rf.commitIndex {
-				rf.commitIndex = min(args.LeaderCommit, len(rf.log)-1)
+				rf.commitIndex = min(args.LeaderCommit, args.PrevLogIndex + len(args.Entries))
 			}
 }
 
@@ -258,17 +306,10 @@ func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
 		return 
 	}
 
-	
-	if rf.votedFor == -1 || rf.votedFor == args.CandidateId {
 
 		rf.votedFor = args.CandidateId
 		reply.VoteGranted = true
 		rf.lastHeard = time.Now()
-		
-	} else {
-		// already voted for someone else this term, rf.votedFor != args.CandidateId
-		reply.VoteGranted = false
-	}
 
 	reply.ReplyTerm = rf.currentTerm
 }
