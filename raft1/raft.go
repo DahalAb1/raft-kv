@@ -50,7 +50,7 @@ type Raft struct {
 	currentTerm int
 	votedFor int
 	role int
-	lastHeard time.Time
+	electionDeadline time.Time // next moment the ticker may campaign; re-drawn randomly on every reset
 	dead int32 // set by Kill(), read by killed(); atomic so no lock needed
 
 	// 3B --> Log Replication 
@@ -59,6 +59,8 @@ type Raft struct {
 	lastApplied int 
 	nextIndex []int
 	matchIndex []int
+
+	// 3C --> Persistance 
 }
 
 // return currentTerm and whether this server
@@ -155,6 +157,17 @@ func (rf *Raft) killed() bool {
 	return atomic.LoadInt32(&rf.dead) == 1
 }
 
+// push the election deadline out by a fresh random 400-700ms. the randomness
+// must live in the deadline itself, drawn again on every reset — if all
+// servers shared a fixed threshold they'd cross it together (they boot at the
+// same instant) and only a post-threshold sleep would separate them, which
+// lets two servers campaign within an RPC's travel time of each other.
+// caller must hold rf.mu.
+func (rf *Raft) resetElectionTimer() {
+	ms := 400 + (rand.Int63() % 300)
+	rf.electionDeadline = time.Now().Add(time.Duration(ms) * time.Millisecond)
+}
+
 
 // example RequestVote RPC arguments structure.
 // field names must start with capital letters!
@@ -220,14 +233,15 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply
 			rf.role = Follower
 
 		// heard from the leader, reset the election timer
-			rf.lastHeard = time.Now()
+			rf.resetElectionTimer()
 			reply.ReplyTerm = rf.currentTerm
 
 			
 			if len(rf.log) - 1 >= args.PrevLogIndex && rf.log[args.PrevLogIndex].Term == args.PrevLogTerm { 
 					// instead of trunctate lets walk 
 
-					// I had initially implemented this condition by simply truncating the value, which was obvious but network . Why truncate does not work : 
+					// I had initially implemented this condition by simply truncating the value, which was obvious becuase I had wrong notion, My belief
+					// was that if something was sent serieall through the network, the reciever would get it serially as well, which is completely wrong. i've described why truncate does not work. : 
 					/**
 						Network connection is flaky, sometimes we recieve data serially, sometimes we
 						don't. When we run go routines, 2 different RPC's A and B, where A was sent to
@@ -327,7 +341,7 @@ func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
 
 		rf.votedFor = args.CandidateId
 		reply.VoteGranted = true
-		rf.lastHeard = time.Now()
+		rf.resetElectionTimer()
 
 	reply.ReplyTerm = rf.currentTerm
 }
@@ -467,8 +481,8 @@ func (rf *Raft) ticker() {
 							rf.currentTerm = res.ReplyTerm
 							rf.votedFor = -1
 							rf.role = Follower
-							rf.lastHeard = time.Now()
-							return 
+							rf.resetElectionTimer()
+							return
 						}
 						
 						
@@ -548,37 +562,27 @@ func (rf *Raft) ticker() {
 		}
 
 
-		// Follower -> Candidate 
+		// Follower -> Candidate
 		rf.mu.Lock()
-		lastMoment := rf.lastHeard
-		rf.mu.Unlock()
-
-		curTime := time.Now()
-		elasped := curTime.Sub(lastMoment)
-
-		if elasped.Milliseconds() >  400 { 
-			// wait 50 - 300 seconds to start election, to minimize 2 servers becoming candidate at the same time 
-			ms := 50 + (rand.Int63() % 300)
-			time.Sleep(time.Duration(ms) * time.Millisecond)
-			
-		// start election
-			rf.mu.Lock()
-				// a heartbeat may have arrived during the random sleep above —
-				// re-check before electing, so we don't disrupt a valid leader
-				if time.Since(rf.lastHeard).Milliseconds() < 400 {
-					rf.mu.Unlock()
-					continue
-				}
-				rf.role = Candidate
-				rf.votedFor = rf.me
-				rf.currentTerm ++
-				term:= rf.currentTerm
-				rf.lastHeard = time.Now()
-
-				// 3B 
-				lastLogIndx := len(rf.log) - 1 
-				lastLogTerm := rf.log[lastLogIndx].Term
+		if time.Now().Before(rf.electionDeadline) {
 			rf.mu.Unlock()
+			continue
+		}
+
+		// deadline passed without hearing from a leader — start election.
+		// no pre-election sleep and no re-check anymore: the randomness lives
+		// in the deadline itself, and the check + state change happen under
+		// one lock hold, so a heartbeat can't sneak in between.
+			rf.role = Candidate
+			rf.votedFor = rf.me
+			rf.currentTerm ++
+			term = rf.currentTerm
+			rf.resetElectionTimer()
+
+			// 3B
+			lastLogIndx := len(rf.log) - 1
+			lastLogTerm := rf.log[lastLogIndx].Term
+		rf.mu.Unlock()
 
 		// send request vote RPC
 			reqRPC := RequestVoteArgs{ 
@@ -683,8 +687,6 @@ func (rf *Raft) ticker() {
 
 			// tell leftover vote goroutines to stop
 			close(done)
-		}
-
 	}
 }
 
@@ -713,7 +715,9 @@ func Make(peers []*labrpc.ClientEnd, me int,
 	rf.currentTerm = 0 
 	rf.votedFor    = -1 
 	rf.role        = Follower
-	rf.lastHeard   = time.Now()
+	// each server boots with its own random 400-700ms deadline — this is what
+	// breaks the boot-time synchronization (all five used to share now+400ms)
+	rf.resetElectionTimer()
 
 	// 3B 
 	rf.log         = []LogEntry{{Term : 0, Index : 0}}
