@@ -12,6 +12,10 @@ trap 'rm -rf "$TMP"' EXIT
 
 START=$(date +%s)
 
+# the tester runs each raft peer as a subprocess of src/main/raft1d — rebuild it
+# or every run silently tests whatever code raft1d was last built from
+(cd .. && go build -race -o main/raft1d main/raft1d.go)
+
 go test -c -o "$TMP/raft3b.test" .
 
 seq 1 "$RUNS" | xargs -P "$PAR" -I{} sh -c "\"$TMP/raft3b.test\" -test.run 3B > \"$TMP/run{}.log\" 2>&1 || true"
