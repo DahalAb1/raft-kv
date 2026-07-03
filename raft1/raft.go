@@ -12,6 +12,7 @@ import (
 	//	"bytes"
 	"math/rand"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	//	"6.5840/labgob"
@@ -46,10 +47,11 @@ type Raft struct {
 	// state a Raft server must maintain.
 	
 	// 3A --> Election
-	currentTerm int 
-	votedFor int 
-	role int 
+	currentTerm int
+	votedFor int
+	role int
 	lastHeard time.Time
+	dead int32 // set by Kill(), read by killed(); atomic so no lock needed
 
 	// 3B --> Log Replication 
 	log []LogEntry
@@ -135,6 +137,22 @@ func (rf *Raft) PersistBytes() int {
 func (rf *Raft) Snapshot(index int, snapshot []byte) {
 	// Your code here (3D).
 
+}
+
+// the tester doesn't halt goroutines created by Raft after each test,
+// but it does call Kill(). your code can use killed() to check whether
+// Kill() has been called. the use of atomic avoids the need for a lock.
+//
+// the issue is that long-running goroutines use memory and may chew
+// up CPU time, perhaps causing later tests to fail and generating
+// confusing debug output. any goroutine with a long-running loop
+// should call killed() to check whether it should stop.
+func (rf *Raft) Kill() {
+	atomic.StoreInt32(&rf.dead, 1)
+}
+
+func (rf *Raft) killed() bool {
+	return atomic.LoadInt32(&rf.dead) == 1
 }
 
 
@@ -391,8 +409,8 @@ func (rf *Raft) Start(command interface{}) (int, int, bool) {
 
 
 func (rf *Raft) ticker() {
-	
-	for {
+
+	for !rf.killed() {
 		// pause each iteration so the follower path doesn't busy-spin
 		time.Sleep(10 * time.Millisecond)
 
@@ -412,6 +430,17 @@ func (rf *Raft) ticker() {
 
 				// build this follower's request from its own nextIndex:
 				rf.mu.Lock()
+
+				// we may have stepped down between the role snapshot at the top of
+				// the tick and this lock (a reply carried a higher term), and our own
+				// AppendEntries handler may have truncated rf.log since. building args
+				// from nextIndex here could then index past the end of the log and
+				// panic — and would send a stale-term RPC besides. re-check first.
+				if rf.role != Leader || rf.currentTerm != term {
+					rf.mu.Unlock()
+					break
+				}
+
 				prevIndex := rf.nextIndex[peer] - 1
 				appendRPCreq := AppendEntriesArgs {
 					LeaderTerm   : term,
@@ -706,8 +735,8 @@ func Make(peers []*labrpc.ClientEnd, me int,
 	go rf.ticker()
 
 	go func(){
-		// apply data to the state machine 
-		for true { 
+		// apply data to the state machine
+		for !rf.killed() {
 			rf.mu.Lock()
 			if rf.commitIndex > rf.lastApplied {
 				rf.lastApplied ++ 
