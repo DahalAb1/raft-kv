@@ -603,11 +603,28 @@ func (rf *Raft) ticker() {
 							return 
 						}
 
-						if res.Success  == false { 	
-							if rf.nextIndex[p] > 1 { 
-								rf.nextIndex[p] -= 1 
-							} 
-						} else { 
+						if res.Success  == false {
+							// fast backup: skip a whole conflicting term per RPC
+							// instead of stepping nextIndex back one entry at a time
+							if res.XTerm == -1 {
+								// follower's log is shorter than PrevLogIndex,
+								// resume from its end
+								rf.nextIndex[p] = res.XLen
+							} else {
+								// jump to the follower's first entry of the
+								// conflicting term...
+								rf.nextIndex[p] = res.XIndex
+
+								// ...unless we also have entries of that term:
+								// those match, so start right after our last one
+								for i := len(rf.log) - 1; i > 0; i-- {
+									if rf.log[i].Term == res.XTerm {
+										rf.nextIndex[p] = i + 1
+										break
+									}
+								}
+							}
+						} else {
 
 							// to prevent any backward change in the leader's matchIndex 
 							// some stale requests could change the matchIndex to a lower value, and it should never go backward
