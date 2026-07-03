@@ -7,15 +7,15 @@ package raft
 // In addition,  Make() creates a new raft peer that implements the
 // raft interface.
 
-
 import (
-	//	"bytes"
+	"bytes"
+	"fmt"
 	"math/rand"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	//	"6.5840/labgob"
+	"6.5840/labgob"
 	"6.5840/labrpc"
 	"6.5840/raftapi"
 	"6.5840/tester1"
@@ -95,17 +95,35 @@ func (rf *Raft) GetState() (int, bool) {
 func (rf *Raft) persist() {
 	// Your code here (3C).
 	// Example:
-	// w := new(bytes.Buffer)
-	// e := labgob.NewEncoder(w)
+	w := new(bytes.Buffer)
+	e := labgob.NewEncoder(w)
+
+	// take the persistent states, and save these into w
+	per_CurTerm := rf.currentTerm
+	per_VoteFor := rf.votedFor 
+	per_log 	:= rf.log
+
+
 	// e.Encode(rf.xxx)
 	// e.Encode(rf.yyy)
 	// raftstate := w.Bytes()
 	// rf.persister.Save(raftstate, nil)
+
+	e.Encode(per_CurTerm)
+	e.Encode(per_VoteFor)
+	e.Encode(per_log)
+
+	raftstate := w.Bytes()
+	rf.persister.Save(raftstate, nil)
+
 }
 
 
 // restore previously persisted state.
 func (rf *Raft) readPersist(data []byte) {
+	rf.mu.Lock()
+	defer rf.mu.Unlock()
+
 	if data == nil || len(data) < 1 { // bootstrap without any state?
 		return
 	}
@@ -122,6 +140,50 @@ func (rf *Raft) readPersist(data []byte) {
 	//   rf.xxx = xxx
 	//   rf.yyy = yyy
 	// }
+
+	// Previously persisted state should get the stored value from memory 
+	// after getting the values store it into the raft's structure 
+	// persistent states are : 
+	// currentTerm, votedFor, log[] 
+	
+	r := bytes.NewBuffer(data)
+	d := labgob.NewDecoder(r)
+
+	var per_CurTerm int 
+	var per_VoteFor int 
+	var per_Log []LogEntry 
+
+	gotCurTerm := d.Decode(&per_CurTerm)
+	gotVotedFor := d.Decode(&per_VoteFor)
+	gotLog := d.Decode(&per_Log)
+
+	if gotCurTerm 	!= nil || 
+	   gotVotedFor  != nil || 
+	   gotLog 		!= nil {
+	
+			  // We land here when Decode returned an error for given data []byte.
+              // That means: the file had data, but we could not turn it back into
+              // currentTerm / votedFor / log. The data is broken.
+              // If we took the currpted data, this server would start fresh
+              // with term 0 and no vote, as if it never voted. 
+			  // A server like that can vote a second time in a term it already voted in, and two leaders can win, which is a big problem. 
+              //
+              // We do not proceed in this case. We handle this error by building one message saying which decode failed, and panic.
+              // Panic stops the program and prints a stack trace, so we see
+              // exactly where it died.
+
+			// panic will be really helpful when we are debugging: it fails the test
+            // right away instead of letting bad state cause a weird failure much
+            // later, like two different votes from a server in the same term.
+		
+		
+		panic(fmt.Sprintf("readPersist: decode failed (currentTerm: %v, votedFor: %v, log: %v)", gotCurTerm, gotVotedFor, gotLog))
+
+	} else {
+		rf.currentTerm = per_CurTerm
+        rf.votedFor = per_VoteFor
+        rf.log = per_Log
+    }
 }
 
 // how many bytes in Raft's persisted log?
@@ -204,12 +266,18 @@ type AppendEntriesArgs struct {
 	LeaderCommit int 
 }
 
-type AppendEntriesReply struct { 
+type AppendEntriesReply struct {
 	// 3A
 	ReplyTerm int
-	
+
 	// 3B
 	Success bool
+
+	// 3C --> fast backup (paper §5.3: "include the term of the conflicting
+	// entry and the first index it stores for that term")
+	XTerm int  // term of the conflicting entry at PrevLogIndex, -1 if log too short
+	XIndex int // first index the follower stores for XTerm
+	XLen int   // follower's log length, used when XTerm == -1
 }
 
 func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply) {
@@ -287,8 +355,30 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply
 					}
 
 					reply.Success = true
+
+
 			} else {
 				reply.Success = false
+
+				// fast backup: tell the leader enough to skip a whole term of
+				// conflicting entries per RPC instead of walking back one by one
+				if len(rf.log) - 1 < args.PrevLogIndex {
+					// our log is too short to even have PrevLogIndex,
+					// leader should restart from our log's end
+					reply.XTerm = -1
+					reply.XLen = len(rf.log)
+				} else {
+					// we have an entry at PrevLogIndex but its term conflicts.
+					// report that term and walk back to the first index we
+					// store for it — everything in that run is the same dead
+					// branch, so the leader can jump over all of it at once
+					reply.XTerm = rf.log[args.PrevLogIndex].Term
+					i := args.PrevLogIndex
+					for i > 1 && rf.log[i-1].Term == reply.XTerm {
+						i--
+					}
+					reply.XIndex = i
+				}
 			}
 
 			// we have to keep track of the minimum commit, therefore the following.
@@ -297,6 +387,9 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply
 			if reply.Success && args.LeaderCommit > rf.commitIndex {
 				rf.commitIndex = min(args.LeaderCommit, args.PrevLogIndex + len(args.Entries))
 			}
+
+			// persist #1 
+			rf.persist()
 }
 
 func (rf *Raft) sendAppendEntries(server int, args *AppendEntriesArgs, reply *AppendEntriesReply) bool { 
@@ -315,6 +408,12 @@ func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
 		rf.currentTerm = args.CandidateTerm
 		rf.votedFor = -1
 		rf.role = Follower
+
+		// persist here, not just on the grant path below: if the vote is
+		// rejected we return early, but currentTerm/votedFor already changed
+		// and the reply carries the new term. crash after replying would
+		// reboot us at the old term, disagreeing with what we told the world.
+		rf.persist()
 	}
 
 	// comparing term 
@@ -344,6 +443,9 @@ func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
 		rf.resetElectionTimer()
 
 	reply.ReplyTerm = rf.currentTerm
+	
+	// persist #2 
+	rf.persist()
 }
 
 // example code to send a RequestVote RPC to a server.
@@ -416,7 +518,9 @@ func (rf *Raft) Start(command interface{}) (int, int, bool) {
 
 		term = rf.currentTerm
 		index = curIndx
-	
+		
+		// persist # 3
+		rf.persist()
 	return index, term, isLeader
 }
 
@@ -482,6 +586,7 @@ func (rf *Raft) ticker() {
 							rf.votedFor = -1
 							rf.role = Follower
 							rf.resetElectionTimer()
+							rf.persist()
 							return
 						}
 						
@@ -509,15 +614,8 @@ func (rf *Raft) ticker() {
 							rf.matchIndex[p] = max(rf.matchIndex[p], req.PrevLogIndex + len(req.Entries))
 							rf.nextIndex[p] = rf.matchIndex[p] + 1 
 						}
-					
-
-
-
 					}
-
 				}(peer, appendRPCreq, appendRPCres)
-
-				// after sending appendEntries, wait 100 seconds. 
 			}
 
 			// majority. only commit entries from the current term 
@@ -582,6 +680,9 @@ func (rf *Raft) ticker() {
 			// 3B
 			lastLogIndx := len(rf.log) - 1
 			lastLogTerm := rf.log[lastLogIndx].Term
+
+			// persist #9 
+			rf.persist()
 		rf.mu.Unlock()
 
 		// send request vote RPC
@@ -603,9 +704,9 @@ func (rf *Raft) ticker() {
 			for i := range rf.peers { 
 				// if waiting for vote, append RPC is encountered then we stop the vote. 
 				rf.mu.Lock()
-				if rf.role == Follower { 
+				if rf.role == Follower {
 					rf.mu.Unlock()
-					break 
+					break
 				}
 				rf.mu.Unlock()
 
@@ -626,6 +727,7 @@ func (rf *Raft) ticker() {
 						rf.currentTerm = res.ReplyTerm
 						rf.votedFor = -1
 						rf.role = Follower
+						rf.persist()
 					}
 					rf.mu.Unlock()
 
