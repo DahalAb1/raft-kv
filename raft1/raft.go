@@ -114,7 +114,7 @@ func (rf *Raft) persist() {
 	e.Encode(per_log)
 
 	raftstate := w.Bytes()
-	rf.persister.Save(raftstate, nil)
+	rf.persister.Save(raftstate, rf.persister.ReadSnapshot())
 
 }
 
@@ -199,7 +199,30 @@ func (rf *Raft) PersistBytes() int {
 // service no longer needs the log through (and including)
 // that index. Raft should now trim its log as much as possible.
 func (rf *Raft) Snapshot(index int, snapshot []byte) {
-	// Your code here (3D).
+	 rf.mu.Lock()
+      defer rf.mu.Unlock()
+      // Your code here (3D).
+
+      offset := rf.log[0].Index
+      if index <= offset || index > rf.commitIndex {
+              return
+      }
+
+      
+      newLog := make([]LogEntry, len(rf.log)-(index-offset))
+      copy(newLog, rf.log[index-offset:])
+      newLog[0].Command = nil 
+      rf.log = newLog
+
+
+
+      w := new(bytes.Buffer)
+      e := labgob.NewEncoder(w)
+      e.Encode(rf.currentTerm)
+      e.Encode(rf.votedFor)
+      e.Encode(rf.log)
+      rf.persister.Save(w.Bytes(), snapshot)
+
 
 }
 
@@ -280,6 +303,22 @@ type AppendEntriesReply struct {
 	XLen int   // follower's log length, used when XTerm == -1
 }
 
+
+type InstallSnapshotArgs struct { 
+	Term int
+	LeaderId int 
+	LastIncludedIndex int 
+	LastIncludedTerm int 
+	Offset byte 
+	Data[] byte
+	Done bool
+
+}
+
+type InstallSnapshotReply struct { 
+	Term int
+}
+
 func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply) {
 			rf.mu.Lock()
 			defer rf.mu.Unlock()
@@ -305,7 +344,27 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply
 			reply.ReplyTerm = rf.currentTerm
 
 			
-			if len(rf.log) - 1 >= args.PrevLogIndex && rf.log[args.PrevLogIndex].Term == args.PrevLogTerm { 
+			// 3D: the log is trimmed after a snapshot, so an entry's global index
+			// no longer equals its slice position. slot 0 is the sentinel and its
+			// Index is the offset: slice position = global index - offset.
+			offset := rf.log[0].Index
+
+			// leader is talking about entries we already burned into the snapshot.
+			// everything <= offset is committed, so it matches the leader by
+			// definition — skip past the overlap instead of indexing negative slots.
+			if args.PrevLogIndex < offset {
+				if args.PrevLogIndex + len(args.Entries) <= offset {
+					// the whole RPC is inside our snapshot: nothing new, but it matched
+					reply.Success = true
+					rf.persist()
+					return
+				}
+				args.Entries = args.Entries[offset - args.PrevLogIndex:]
+				args.PrevLogIndex = offset
+				args.PrevLogTerm = rf.log[0].Term
+			}
+
+			if len(rf.log) - 1 >= args.PrevLogIndex - offset && rf.log[args.PrevLogIndex - offset].Term == args.PrevLogTerm {
 					// instead of trunctate lets walk 
 
 					// I had initially implemented this condition by simply truncating the value, which was obvious becuase I had wrong notion, My belief
@@ -334,23 +393,24 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply
 					
 					
 					// we'll start from PrevLogIndex+1 (Entries[0]'s slot), one slot per entry.
+					// i is a global index; every rf.log access subtracts offset
 					for i := args.PrevLogIndex + 1; i <= args.PrevLogIndex + len(args.Entries); i++ {
 						entryTerm := args.Entries[i - args.PrevLogIndex - 1].Term
 
 						// slot doesn't exist: our log ends here, append the rest and stop
-						if i >= len(rf.log) {
+						if i - offset >= len(rf.log) {
 							rf.log = append(rf.log, args.Entries[i - args.PrevLogIndex - 1:]...)
 							break
 						}
 
 						// same index, same term: we already have it, touch nothing
-						if rf.log[i].Term == entryTerm {
+						if rf.log[i - offset].Term == entryTerm {
 							continue
 						}
 
 						// conflict: same index, different term. everything from here on
 						// is a dead branch — truncate it and take the leader's entries
-						rf.log = append(rf.log[:i], args.Entries[i - args.PrevLogIndex - 1:]...)
+						rf.log = append(rf.log[:i - offset], args.Entries[i - args.PrevLogIndex - 1:]...)
 						break
 					}
 
@@ -362,19 +422,21 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply
 
 				// fast backup: tell the leader enough to skip a whole term of
 				// conflicting entries per RPC instead of walking back one by one
-				if len(rf.log) - 1 < args.PrevLogIndex {
+				if len(rf.log) - 1 < args.PrevLogIndex - offset {
 					// our log is too short to even have PrevLogIndex,
-					// leader should restart from our log's end
+					// leader should restart from our log's end.
+					// XLen is a global length: trimmed entries still count
 					reply.XTerm = -1
-					reply.XLen = len(rf.log)
+					reply.XLen = offset + len(rf.log)
 				} else {
 					// we have an entry at PrevLogIndex but its term conflicts.
 					// report that term and walk back to the first index we
 					// store for it — everything in that run is the same dead
 					// branch, so the leader can jump over all of it at once
-					reply.XTerm = rf.log[args.PrevLogIndex].Term
+					reply.XTerm = rf.log[args.PrevLogIndex - offset].Term
 					i := args.PrevLogIndex
-					for i > 1 && rf.log[i-1].Term == reply.XTerm {
+					// stop at offset+1: below that is the sentinel / burned entries
+					for i > offset + 1 && rf.log[i - 1 - offset].Term == reply.XTerm {
 						i--
 					}
 					reply.XIndex = i
@@ -427,7 +489,9 @@ func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
 	// we first compare the term, if the candidate's greater then we konw it's most up to date
 	// if the term is same of the candidate, we will check the size of the index to figure out if the candidate is most up to date. 
 	// this preserves the log completeness property. 
-	isValid := (args.LastLogTerm > rf.log[len(rf.log)-1].Term  || (args.LastLogTerm == rf.log[len(rf.log)-1].Term && args.LastLogIndex >= len(rf.log) -1))
+	// 3D: last slice element is still our last entry, but its global index is
+	// offset + len - 1 now, and that's what the candidate's LastLogIndex means
+	isValid := (args.LastLogTerm > rf.log[len(rf.log)-1].Term  || (args.LastLogTerm == rf.log[len(rf.log)-1].Term && args.LastLogIndex >= rf.log[0].Index + len(rf.log) - 1))
 	// can we vote? 
 	voteAvaliable := (rf.votedFor == -1 || rf.votedFor == args.CandidateId) 
 	// comparing log 
@@ -505,8 +569,8 @@ func (rf *Raft) Start(command interface{}) (int, int, bool) {
 		if rf.role != Leader { 
 			return -1,-1, false 
 		}
-		// the new entry takes the next free slot
-		curIndx := len(rf.log)
+		// the new entry takes the next free global index (3D: offset + length)
+		curIndx := rf.log[0].Index + len(rf.log)
 
 		curLog := LogEntry{
 		Command : command,
@@ -559,13 +623,22 @@ func (rf *Raft) ticker() {
 					break
 				}
 
+				offset := rf.log[0].Index
 				prevIndex := rf.nextIndex[peer] - 1
+
+				// 3D: this follower needs entries we burned into the snapshot.
+				// the real fix is InstallSnapshot (not built yet) — clamp to the
+				// sentinel for now so we don't index below the trimmed log.
+				if prevIndex < offset {
+					prevIndex = offset
+				}
+
 				appendRPCreq := AppendEntriesArgs {
 					LeaderTerm   : term,
 					LeaderId     : rf.me,
 					PrevLogIndex : prevIndex,
-					PrevLogTerm  : rf.log[prevIndex].Term,
-					Entries      : append([]LogEntry{}, rf.log[rf.nextIndex[peer]:]...),
+					PrevLogTerm  : rf.log[prevIndex - offset].Term,
+					Entries      : append([]LogEntry{}, rf.log[prevIndex + 1 - offset:]...),
 					LeaderCommit : rf.commitIndex,
 				}
 				appendRPCres := AppendEntriesReply{}
@@ -616,10 +689,12 @@ func (rf *Raft) ticker() {
 								rf.nextIndex[p] = res.XIndex
 
 								// ...unless we also have entries of that term:
-								// those match, so start right after our last one
+								// those match, so start right after our last one.
+								// i here is a slice position — the entry's own
+								// Index field gives the global index (3D)
 								for i := len(rf.log) - 1; i > 0; i-- {
 									if rf.log[i].Term == res.XTerm {
-										rf.nextIndex[p] = i + 1
+										rf.nextIndex[p] = rf.log[i].Index + 1
 										break
 									}
 								}
@@ -635,12 +710,14 @@ func (rf *Raft) ticker() {
 				}(peer, appendRPCreq, appendRPCres)
 			}
 
-			// majority. only commit entries from the current term 
+			// majority. only commit entries from the current term
 			rf.mu.Lock()
-			for n := len(rf.log) - 1; n > rf.commitIndex; n-- {
-				
+			// n is a global index (matchIndex and commitIndex speak global),
+			// so it starts at offset + len - 1 and rf.log access subtracts (3D)
+			for n := rf.log[0].Index + len(rf.log) - 1; n > rf.commitIndex; n-- {
+
 				// checking if the new server has recieved new log entries
-				if rf.log[n].Term != rf.currentTerm {
+				if rf.log[n - rf.log[0].Index].Term != rf.currentTerm {
 					continue
 				}
 
@@ -694,9 +771,9 @@ func (rf *Raft) ticker() {
 			term = rf.currentTerm
 			rf.resetElectionTimer()
 
-			// 3B
-			lastLogIndx := len(rf.log) - 1
-			lastLogTerm := rf.log[lastLogIndx].Term
+			// 3B (3D: global last index; term still read from the slice's last slot)
+			lastLogIndx := rf.log[0].Index + len(rf.log) - 1
+			lastLogTerm := rf.log[len(rf.log) - 1].Term
 
 			// persist #9 
 			rf.persist()
@@ -796,9 +873,10 @@ func (rf *Raft) ticker() {
 					// when the candidate becomes the leader we'd have to
 					// re initialize rf.nextIndex[i] and rf.matchIndex[i]
 
-					for i:= range rf.peers { 
-						rf.nextIndex[i] = len(rf.log)
-						rf.matchIndex[i] = 0 
+					for i:= range rf.peers {
+						// next free global index, not slice length (3D)
+						rf.nextIndex[i] = rf.log[0].Index + len(rf.log)
+						rf.matchIndex[i] = 0
 					}
 				}
 				rf.mu.Unlock()
@@ -854,6 +932,12 @@ func Make(peers []*labrpc.ClientEnd, me int,
 	// initialize from state persisted before a crash
 	rf.readPersist(persister.ReadRaftState())
 
+	// 3D 
+	// Rebooting the server will restore the previous state of this server
+	// the first value in the log stores the snapshot's index, therefore we can safely apply the snapshot's result here
+	rf.commitIndex = rf.log[0].Index
+	rf.lastApplied = rf.log[0].Index
+
 	// start ticker goroutine to start elections
 	go rf.ticker()
 
@@ -862,9 +946,10 @@ func Make(peers []*labrpc.ClientEnd, me int,
 		for !rf.killed() {
 			rf.mu.Lock()
 			if rf.commitIndex > rf.lastApplied {
-				rf.lastApplied ++ 
-				cmd := rf.log[rf.lastApplied].Command
-				indx := rf.log[rf.lastApplied].Index
+				rf.lastApplied ++
+				// lastApplied is a global index — subtract offset for the slice (3D)
+				cmd := rf.log[rf.lastApplied - rf.log[0].Index].Command
+				indx := rf.log[rf.lastApplied - rf.log[0].Index].Index
 				rf.mu.Unlock()
 
 				// applyCh is unbufferece, a secnd on it waits until someone on the other end takes the value. 
