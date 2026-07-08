@@ -60,7 +60,10 @@ type Raft struct {
 	nextIndex []int
 	matchIndex []int
 
-	// 3C --> Persistance 
+	// 3D --> Snapshot
+	pendingSnapshot []byte
+	pendingSnapIndex int
+	pendingSnapTerm int
 }
 
 // return currentTerm and whether this server
@@ -459,6 +462,78 @@ func (rf *Raft) sendAppendEntries(server int, args *AppendEntriesArgs, reply *Ap
 	return appendEntries
 }
 
+// a follower fell so far behind that the entries it needs were burned into
+// the leader's snapshot — the leader can't build an AppendEntries for it
+// anymore, so it sends the whole snapshot instead. install it: replace our
+// log, jump our counters, persist blob + state together, and leave the blob
+// as a note for the applier goroutine to forward up to the service.
+func (rf *Raft) InstallSnapshot(args *InstallSnapshotArgs, reply *InstallSnapshotReply) {
+	rf.mu.Lock()
+	defer rf.mu.Unlock()
+
+	// stale leader, refuse: a dead leader must not overwrite our state
+	if args.Term < rf.currentTerm {
+		reply.Term = rf.currentTerm
+		return
+	}
+
+	// live leader: adopt its term if newer, become follower, reset the
+	// election timer — the snapshot proves a live leader exists
+	if args.Term > rf.currentTerm {
+		rf.currentTerm = args.Term
+		rf.votedFor = -1
+	}
+	rf.role = Follower
+	rf.resetElectionTimer()
+	reply.Term = rf.currentTerm
+
+	// old or duplicate snapshot (the network reorders RPCs): we are already
+	// past this point, installing it would move us backward
+	if args.LastIncludedIndex <= rf.commitIndex {
+		rf.persist()
+		return
+	}
+
+	offset := rf.log[0].Index
+	if args.LastIncludedIndex <= offset + len(rf.log) - 1 && rf.log[args.LastIncludedIndex - offset].Term == args.LastIncludedTerm {
+		// our log extends past the snapshot and agrees with it — keep the
+		// tail, those entries are still valid (same skip-don't-truncate
+		// philosophy as the AppendEntries walk)
+		newLog := append([]LogEntry(nil), rf.log[args.LastIncludedIndex - offset:]...)
+		newLog[0].Command = nil
+		rf.log = newLog
+	} else {
+		// our log is too short, or disagrees at that index (dead branch) —
+		// the snapshot replaces it. the fresh sentinel carries exactly what
+		// the next AppendEntries consistency check needs.
+		rf.log = []LogEntry{{Index: args.LastIncludedIndex, Term: args.LastIncludedTerm}}
+	}
+
+	// the service is about to receive the blob, so everything through
+	// LastIncludedIndex counts as committed and applied
+	rf.commitIndex = args.LastIncludedIndex
+	rf.lastApplied = args.LastIncludedIndex
+
+	// blob + raft state must land on disk together, same reason as
+	// Snapshot(): after the trim the blob is the only copy of that history
+	w := new(bytes.Buffer)
+	e := labgob.NewEncoder(w)
+	e.Encode(rf.currentTerm)
+	e.Encode(rf.votedFor)
+	e.Encode(rf.log)
+	rf.persister.Save(w.Bytes(), args.Data)
+
+	// note for the applier goroutine: forward this up applyCh
+	rf.pendingSnapshot = args.Data
+	rf.pendingSnapIndex = args.LastIncludedIndex
+	rf.pendingSnapTerm = args.LastIncludedTerm
+}
+
+func (rf *Raft) sendInstallSnapshot(server int, args *InstallSnapshotArgs, reply *InstallSnapshotReply) bool {
+	ok := rf.peers[server].Call("Raft.InstallSnapshot", args, reply)
+	return ok
+}
+
 
 // example RequestVote RPC handler.
 func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
@@ -626,11 +701,53 @@ func (rf *Raft) ticker() {
 				offset := rf.log[0].Index
 				prevIndex := rf.nextIndex[peer] - 1
 
-				// 3D: this follower needs entries we burned into the snapshot.
-				// the real fix is InstallSnapshot (not built yet) — clamp to the
-				// sentinel for now so we don't index below the trimmed log.
+				// 3D: this follower needs entries we burned into the snapshot —
+				// we can't build an AppendEntries for it anymore. send the whole
+				// snapshot instead; the follower installs it and the next tick
+				// resumes normal AppendEntries from right after it.
 				if prevIndex < offset {
-					prevIndex = offset
+					snapReq := InstallSnapshotArgs{
+						Term:              term,
+						LeaderId:          rf.me,
+						LastIncludedIndex: offset,
+						LastIncludedTerm:  rf.log[0].Term,
+						Data:              rf.persister.ReadSnapshot(),
+					}
+					snapRes := InstallSnapshotReply{}
+					rf.mu.Unlock()
+
+					go func(p int, req InstallSnapshotArgs, res InstallSnapshotReply) {
+						if rf.sendInstallSnapshot(p, &req, &res) {
+
+							// follower has a higher term: we are a stale leader
+							rf.mu.Lock()
+							defer rf.mu.Unlock()
+
+							if res.Term > rf.currentTerm {
+								rf.currentTerm = res.Term
+								rf.votedFor = -1
+								rf.role = Follower
+								rf.resetElectionTimer()
+								rf.persist()
+								return
+							}
+
+							// drop stale replies, same rule as AppendEntries:
+							// a reply is only valid for the term it was sent in
+							if rf.role != Leader || rf.currentTerm != req.Term {
+								return
+							}
+
+							// the follower now has everything through
+							// LastIncludedIndex. max keeps matchIndex from
+							// ever moving backward on a late reply.
+							rf.matchIndex[p] = max(rf.matchIndex[p], req.LastIncludedIndex)
+							rf.nextIndex[p] = rf.matchIndex[p] + 1
+						}
+					}(peer, snapReq, snapRes)
+
+					// this tick, this follower gets the snapshot instead of entries
+					continue
 				}
 
 				appendRPCreq := AppendEntriesArgs {
@@ -916,7 +1033,7 @@ func Make(peers []*labrpc.ClientEnd, me int,
 	// breaks the boot-time synchronization (all five used to share now+400ms)
 	rf.resetElectionTimer()
 
-	// 3B 
+	// 3B
 	rf.log         = []LogEntry{{Term : 0, Index : 0}}
 	rf.commitIndex = 0
 	rf.lastApplied = 0
@@ -945,6 +1062,31 @@ func Make(peers []*labrpc.ClientEnd, me int,
 		// apply data to the state machine
 		for !rf.killed() {
 			rf.mu.Lock()
+
+			// a snapshot the InstallSnapshot handler left as a note goes up
+			// first — it replaces everything the service had, so sending
+			// commands before it would be wasted work
+			if rf.pendingSnapshot != nil {
+				msg := raftapi.ApplyMsg{
+					SnapshotValid: true,
+					Snapshot:      rf.pendingSnapshot,
+					SnapshotTerm:  rf.pendingSnapTerm,
+					SnapshotIndex: rf.pendingSnapIndex,
+				}
+				rf.pendingSnapshot = nil
+				rf.mu.Unlock()
+
+			// We should unlock before sending our message because applyCh is unbuffered channel,
+			//  so this blocks our thread until the service on the other end receives it.
+			//  But the service is not always receiving, If we sat here holding rf.mu while
+			// the service sat in waiting for rf.mu, both sides would wait
+			// on each other forever, therefore, deadlock. So we drop the lock, then send the snapshot's message.
+
+			// the service is Snapshot(), which starts with rf.mu.Lock(), if the channel is waiting for the recieve and the service is not returning the value because it can get access to the lock it will hold the program and we would not be able to proceed forward, therefore, deadlock. 
+				applyCh <- msg
+				continue
+			}
+
 			if rf.commitIndex > rf.lastApplied {
 				rf.lastApplied ++
 				// lastApplied is a global index — subtract offset for the slice (3D)
