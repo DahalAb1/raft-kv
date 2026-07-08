@@ -1075,14 +1075,7 @@ func Make(peers []*labrpc.ClientEnd, me int,
 				}
 				rf.pendingSnapshot = nil
 				rf.mu.Unlock()
-
-			// We should unlock before sending our message because applyCh is unbuffered channel,
-			//  so this blocks our thread until the service on the other end receives it.
-			//  But the service is not always receiving, If we sat here holding rf.mu while
-			// the service sat in waiting for rf.mu, both sides would wait
-			// on each other forever, therefore, deadlock. So we drop the lock, then send the snapshot's message.
-
-			// the service is Snapshot(), which starts with rf.mu.Lock(), if the channel is waiting for the recieve and the service is not returning the value because it can get access to the lock it will hold the program and we would not be able to proceed forward, therefore, deadlock. 
+				
 				applyCh <- msg
 				continue
 			}

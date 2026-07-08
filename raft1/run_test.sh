@@ -1,27 +1,41 @@
 #!/usr/bin/env bash
-# Run a Raft test suite (3A/3B/3C/3D) N times in parallel, collect results into
-# out_<suite>.txt, and finish with a diagnostics summary (total / passed / failed / time).
-# Usage: ./run_test.sh [runs] [parallel]   (defaults: 100 runs, 5 at a time)
-# The script prompts for which suite to run: A, B, C, or D.
+# Run a Raft test suite (3A/3B/3C/3D, or ALL of them) N times in parallel,
+# collect results into out_<suite>.txt, and finish with a diagnostics summary
+# (total / passed / failed / time).
+# Usage: ./run_test.sh [suite] [runs] [parallel]
+#   suite: A, B, C, D, or ALL (prompted for if omitted)
+#   defaults: 100 runs, 5 at a time
+# Examples:
+#   ./run_test.sh              # prompts for suite
+#   ./run_test.sh D            # 100 runs of 3D
+#   ./run_test.sh D 30 10      # 30 runs of 3D, 10 in parallel
+#   ./run_test.sh ALL 50       # 50 runs of the full 3A-3D gauntlet
 set -e
 cd "$(dirname "$0")"
 
-RUNS="${1:-100}"
-PAR="${2:-5}"
+# suite may come as the first argument; runs/parallel shift behind it
+CHOICE="${1:-}"
+RUNS="${2:-100}"
+PAR="${3:-5}"
 
-# ask which suite to run; re-ask on anything that isn't A/B/C/D
+# ask which suite to run when no argument was given; re-ask on anything
+# that isn't A/B/C/D/ALL
 while true; do
-    read -r -p "Which test? (A/B/C/D): " CHOICE
+    if [ -z "$CHOICE" ]; then
+        read -r -p "Which test? (A/B/C/D/ALL): " CHOICE
+    fi
     case "$CHOICE" in
-        [Aa]) SUITE="3A"; break ;;
-        [Bb]) SUITE="3B"; break ;;
-        [Cc]) SUITE="3C"; break ;;
-        [Dd]) SUITE="3D"; break ;;
-        *)    echo "Invalid choice '$CHOICE' — enter A, B, C, or D." ;;
+        [Aa])        SUITE="3A";             NAME="3a";  break ;;
+        [Bb])        SUITE="3B";             NAME="3b";  break ;;
+        [Cc])        SUITE="3C";             NAME="3c";  break ;;
+        [Dd])        SUITE="3D";             NAME="3d";  break ;;
+        [Aa][Ll][Ll]) SUITE="3A|3B|3C|3D";   NAME="all"; break ;;
+        *)  echo "Invalid choice '$CHOICE' — enter A, B, C, D, or ALL."
+            CHOICE="" ;;
     esac
 done
 
-OUT="out_$(echo "$SUITE" | tr '[:upper:]' '[:lower:]').txt"
+OUT="out_$NAME.txt"
 
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
@@ -34,7 +48,9 @@ START=$(date +%s)
 
 go test -c -o "$TMP/raft.test" .
 
-seq 1 "$RUNS" | xargs -P "$PAR" -I{} sh -c "\"$TMP/raft.test\" -test.run $SUITE > \"$TMP/run{}.log\" 2>&1 || true"
+# SUITE is quoted inside the inner shell too: the ALL pattern contains '|',
+# which an unquoted expansion would turn into shell pipes
+seq 1 "$RUNS" | xargs -P "$PAR" -I{} sh -c "\"$TMP/raft.test\" -test.run \"$SUITE\" > \"$TMP/run{}.log\" 2>&1 || true"
 
 PASSED=0
 FAILED=0
