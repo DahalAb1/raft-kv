@@ -15,6 +15,9 @@ type Op struct {
 	// Your definitions here.
 	// Field names must start with capital letters,
 	// otherwise RPC will break.
+	Me  int
+	Id  int
+	Req interface{}
 }
 
 
@@ -38,6 +41,8 @@ type RSM struct {
 	maxraftstate int // snapshot if log grows this big
 	sm           StateMachine
 	// Your definitions here.
+	nextId  int
+	waiters map[int]chan any // waiters watis for committed data
 }
 
 // servers[] contains the ports of the set of
@@ -61,10 +66,44 @@ func MakeRSM(servers []*labrpc.ClientEnd, me int, persister *tester.Persister, m
 		maxraftstate: maxraftstate,
 		applyCh:      make(chan raftapi.ApplyMsg),
 		sm:           sm,
+		waiters:      make(map[int]chan any),
 	}
 	if !tester.UseRaftStateMachine {
 		rsm.rf = raft.Make(servers, me, persister, rsm.applyCh)
 	}
+
+	// one reader goroutine for the server's whole life: drain every committed
+	// op off applyCh in log order and apply it to the state machine. if a
+	// Submit is waiting at that index, hand it the result and wake it up.
+	go func() {
+		for {
+			msg := <-rsm.applyCh
+			if !msg.CommandValid {
+				continue 
+			}
+			res := rsm.sm.DoOp(msg.Command)
+
+			rsm.mu.Lock()
+
+			// map lookups have two value form built into the language
+			// therefore we get okay when we just send ch
+			ch, ok := rsm.waiters[msg.CommandIndex]
+			if ok {
+				delete(rsm.waiters, msg.CommandIndex)
+			}
+			rsm.mu.Unlock()
+
+			if ok {
+				// two sends: first the op that actually committed (so the
+				// waiter can check it is really its own, not an impostor
+				// from a newer leader), then the result DoOp produced
+				ch <- msg.Command
+				ch <- res
+			}
+		}
+	}()
+	
+	
 	return rsm
 }
 
@@ -83,5 +122,35 @@ func (rsm *RSM) Submit(req any) (rpc.Err, any) {
 	// is the argument to Submit and id is a unique id for the op.
 
 	// your code here
-	return rpc.ErrWrongLeader, nil // i'm dead, try another server.
+	rsm.mu.Lock()
+	rsm.nextId += 1
+	cmd := Op{Me: rsm.me, Id: rsm.nextId, Req: req}
+
+	// Start and the waiter registration happen under the same lock so the
+	// reader can't process the commit before the waiter is on the board.
+	// Start itself tells us whether we are the leader and which index the
+	// op should land at, so no separate GetState call is needed.
+	index, _, isLeader := rsm.rf.Start(cmd)
+	if !isLeader {
+		rsm.mu.Unlock()
+		return rpc.ErrWrongLeader, nil
+	}
+	ch := make(chan any)
+	rsm.waiters[index] = ch
+	rsm.mu.Unlock()
+
+	// the wait: blocks until the reader goroutine sees a commit at our
+	// index and sends into this channel. first receive is the op that
+	// committed there, second is DoOp's result.
+	op := (<-ch).(Op) // (<-)ch --> recieves data from channel gets info as any type, .Op --> convert any of channel's return to Op 
+	res := <-ch
+
+	// impostor check: leadership may have changed after Start, and a new
+	// leader's op can commit at the index we were promised. ids only
+	// increase per server, so a mismatch means our op was overwritten and
+	// will never commit — the client must retry elsewhere.
+	if op.Me != rsm.me || op.Id != cmd.Id {
+		return rpc.ErrWrongLeader, nil
+	}
+	return rpc.OK, res
 }
