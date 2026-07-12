@@ -34,10 +34,27 @@ func (ck *Clerk) Leader() int {
 // The types of args and reply (including whether they are pointers)
 // must match the declared types of the RPC handler function's
 // arguments. Additionally, reply must be passed as a pointer.
-func (ck *Clerk) Get(key string) (string, rpc.Tversion, rpc.Err) {
 
-	// You will have to modify this function.
-	return "", 0, ""
+func (ck *Clerk) Get(key string) (string, rpc.Tversion, rpc.Err) {
+	args := rpc.GetArgs{Key: key}
+
+	i := ck.leader
+	for {
+		reply := rpc.GetReply{}
+		ok := ck.clnt.Call(ck.servers[i], "KVServer.Get", &args, &reply)
+
+		// a real answer only comes from the leader; anything else
+		// (no reply, or "I'm not the leader") means try the next server
+		if ok && reply.Err != rpc.ErrWrongLeader {
+			ck.leader = i
+			return reply.Value, reply.Version, reply.Err
+		}
+
+		i = i + 1
+		if i == len(ck.servers) {
+			i = 0
+		}
+	}
 }
 
 // Put updates key with value only if the version in the
@@ -58,6 +75,37 @@ func (ck *Clerk) Get(key string) (string, rpc.Tversion, rpc.Err) {
 // must match the declared types of the RPC handler function's
 // arguments. Additionally, reply must be passed as a pointer.
 func (ck *Clerk) Put(key string, value string, version rpc.Tversion) rpc.Err {
-	// You will have to modify this function.
-	return ""
+	args := rpc.PutArgs{Key: key, Value: value, Version: version}
+
+	// resent tracks whether an earlier attempt might have reached the
+	// server. it flips to true the moment one RPC goes unanswered.
+	resent := false
+
+	i := ck.leader
+	for {
+		reply := rpc.PutReply{}
+		ok := ck.clnt.Call(ck.servers[i], "KVServer.Put", &args, &reply)
+
+		if ok && reply.Err != rpc.ErrWrongLeader {
+			ck.leader = i
+
+			// ErrVersion on a resend is ambiguous: the lost earlier RPC
+			// may have done the Put (bumping the version), and this retry
+			// is seeing the bump. the server can't tell us which world
+			// we're in, so report ErrMaybe and let the application decide.
+			if reply.Err == rpc.ErrVersion && resent {
+				return rpc.ErrMaybe
+			}
+			return reply.Err
+		}
+
+		if !ok {
+			resent = true
+		}
+
+		i = i + 1
+		if i == len(ck.servers) {
+			i = 0
+		}
+	}
 }

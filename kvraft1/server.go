@@ -9,11 +9,18 @@ import (
 
 )
 
+type entry struct {
+	Value   string
+	Version rpc.Tversion
+}
+
 type KVServer struct {
 	me  int
 	rsm *rsm.RSM
 
-	// Your definitions here.
+	// no mutex: DoOp is the only code that touches kvs, and it is only
+	// ever called by the rsm's single reader goroutine, one op at a time
+	kvs map[string]entry
 }
 
 // To type-cast req to the right type, take a look at Go's type switches or type
@@ -22,7 +29,37 @@ type KVServer struct {
 // https://go.dev/tour/methods/16
 // https://go.dev/tour/methods/15
 func (kv *KVServer) DoOp(req any) any {
-	// Your code here
+	switch args := req.(type) {
+	case rpc.GetArgs:
+		e, ok := kv.kvs[args.Key]
+		if !ok {
+			return rpc.GetReply{Err: rpc.ErrNoKey}
+		}
+		return rpc.GetReply{Value: e.Value, Version: e.Version, Err: rpc.OK}
+
+	case rpc.PutArgs:
+		e, exists := kv.kvs[args.Key]
+
+		// rule 1: new key — version 0 means "create it"
+		if !exists && args.Version == 0 {
+			kv.kvs[args.Key] = entry{Value: args.Value, Version: 1}
+			return rpc.PutReply{Err: rpc.OK}
+		}
+
+		// rule 2: key doesn't exist and caller thought it did
+		if !exists {
+			return rpc.PutReply{Err: rpc.ErrNoKey}
+		}
+
+		// rule 3: key changed since the caller last read it
+		if args.Version != e.Version {
+			return rpc.PutReply{Err: rpc.ErrVersion}
+		}
+
+		// rule 4: version matches — do the write, bump the version
+		kv.kvs[args.Key] = entry{Value: args.Value, Version: e.Version + 1}
+		return rpc.PutReply{Err: rpc.OK}
+	}
 	return nil
 }
 
@@ -36,15 +73,23 @@ func (kv *KVServer) Restore(data []byte) {
 }
 
 func (kv *KVServer) Get(args *rpc.GetArgs, reply *rpc.GetReply) {
-	// Your code here. Use kv.rsm.Submit() to submit args
-	// You can use go's type casts to turn the any return value
-	// of Submit() into a GetReply: rep.(rpc.GetReply)
+	// submit the value (not the pointer): labgob registered rpc.GetArgs,
+	// and the value form is what comes back out of the log into DoOp
+	err, rep := kv.rsm.Submit(*args)
+	if err != rpc.OK {
+		reply.Err = err
+		return
+	}
+	*reply = rep.(rpc.GetReply)
 }
 
 func (kv *KVServer) Put(args *rpc.PutArgs, reply *rpc.PutReply) {
-	// Your code here. Use kv.rsm.Submit() to submit args
-	// You can use go's type casts to turn the any return value
-	// of Submit() into a PutReply: rep.(rpc.PutReply)
+	err, rep := kv.rsm.Submit(*args)
+	if err != rpc.OK {
+		reply.Err = err
+		return
+	}
+	*reply = rep.(rpc.PutReply)
 }
 
 // StartKVServer() and MakeRSM() must return quickly, so they should
@@ -56,8 +101,9 @@ func StartKVServer(servers []*labrpc.ClientEnd, gid tester.Tgid, me int, persist
 	labgob.Register(rpc.PutArgs{})
 	labgob.Register(rpc.GetArgs{})
 
-	kv := &KVServer{me: me}
-
+	// the map must exist before MakeRSM: MakeRSM starts the reader
+	// goroutine, which can call DoOp immediately
+	kv := &KVServer{me: me, kvs: make(map[string]entry)}
 
 	kv.rsm = rsm.MakeRSM(servers, me, persister, maxraftstate, kv)
 	// You may need initialization code here.
