@@ -2,6 +2,7 @@ package rsm
 
 import (
 	"sync"
+	"time"
 
 	"6.5840/kvsrv1/rpc"
 	"6.5840/labrpc"
@@ -81,7 +82,8 @@ func MakeRSM(servers []*labrpc.ClientEnd, me int, persister *tester.Persister, m
 			if !msg.CommandValid {
 				continue 
 			}
-			res := rsm.sm.DoOp(msg.Command)
+			op := msg.Command.(Op)
+			res := rsm.sm.DoOp(op.Req)
 
 			rsm.mu.Lock()
 
@@ -102,7 +104,7 @@ func MakeRSM(servers []*labrpc.ClientEnd, me int, persister *tester.Persister, m
 			}
 		}
 	}()
-	
+
 	
 	return rsm
 }
@@ -128,29 +130,60 @@ func (rsm *RSM) Submit(req any) (rpc.Err, any) {
 
 	// Start and the waiter registration happen under the same lock so the
 	// reader can't process the commit before the waiter is on the board.
-	// Start itself tells us whether we are the leader and which index the
-	// op should land at, so no separate GetState call is needed.
-	index, _, isLeader := rsm.rf.Start(cmd)
+	// Start's term is kept as the reference point for noticing leadership
+	// changes while we wait.
+	index, startTerm, isLeader := rsm.rf.Start(cmd)
 	if !isLeader {
 		rsm.mu.Unlock()
 		return rpc.ErrWrongLeader, nil
 	}
-	ch := make(chan any)
+	// buffered so the reader's two sends always land even if we've walked
+	// away on timeout — an unbuffered send to an abandoned pager would
+	// freeze the applier, which stalls applyCh, which stalls Raft itself.
+	ch := make(chan any, 2)
 	rsm.waiters[index] = ch
 	rsm.mu.Unlock()
 
-	// the wait: blocks until the reader goroutine sees a commit at our
-	// index and sends into this channel. first receive is the op that
-	// committed there, second is DoOp's result.
-	op := (<-ch).(Op) // (<-)ch --> recieves data from channel gets info as any type, .Op --> convert any of channel's return to Op 
-	res := <-ch
+	// the wait: wake on either a commit at our index, or a periodic check
+	// that leadership still holds. "my op will never commit" arrives as
+	// silence — no commit at this index at all — so the pager alone can't
+	// deliver that answer; we have to ask Raft ourselves.
+	for {
+		select {
+		case v := <-ch:
+			op := v.(Op) // (<-)ch --> recieves data from channel gets info as any type, .(Op) --> convert any of channel's return to Op
+			res := <-ch
 
-	// impostor check: leadership may have changed after Start, and a new
-	// leader's op can commit at the index we were promised. ids only
-	// increase per server, so a mismatch means our op was overwritten and
-	// will never commit — the client must retry elsewhere.
-	if op.Me != rsm.me || op.Id != cmd.Id {
-		return rpc.ErrWrongLeader, nil
+			// impostor check: leadership may have changed after Start, and a new
+			// leader's op can commit at the index we were promised. ids only
+			// increase per server, so a mismatch means our op was overwritten and
+			// will never commit — the client must retry elsewhere.
+			if op.Me != rsm.me || op.Id != cmd.Id {
+				return rpc.ErrWrongLeader, nil
+			}
+			return rpc.OK, res
+
+			// every 100 ms we check if the leadership has changed
+			// if it has then we drop the channel and clear out the waiting dic with channel's info
+			// if not the above case handles it. 
+		case <-time.After(100 * time.Millisecond):
+			term, isLeader := rsm.rf.GetState()
+			if term == startTerm && isLeader {
+				continue // still in charge, promise still good, keep waiting
+			}
+			// leadership gone — but only give up if our pager is still on the
+			// board. if the reader already took it, a result is en route and
+			// the next loop iteration will receive it; returning ErrWrongLeader
+			// for an op that actually committed would make the client re-run it.
+			rsm.mu.Lock()
+			_, waiting := rsm.waiters[index]
+			if waiting {
+				delete(rsm.waiters, index)
+			}
+			rsm.mu.Unlock()
+			if waiting {
+				return rpc.ErrWrongLeader, nil
+			}
+		}
 	}
-	return rpc.OK, res
 }

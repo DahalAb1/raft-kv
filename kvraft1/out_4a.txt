@@ -1,0 +1,508 @@
+=== run 1 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:46:43 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:46:44 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:46:52 checkpointPersister: no return
+=== run 2 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:46:43 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:46:44 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:46:52 checkpointPersister: no return
+=== run 3 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:46:43 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:46:44 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:46:52 checkpointPersister: no return
+=== run 4 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:46:43 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:46:44 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:46:52 checkpointPersister: no return
+=== run 5 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:46:43 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:46:44 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:46:52 checkpointPersister: no return
+=== run 6 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:46:53 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:46:54 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:03 checkpointPersister: no return
+=== run 7 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:46:53 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:46:54 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:03 checkpointPersister: no return
+=== run 8 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:46:53 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:46:54 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:03 checkpointPersister: no return
+=== run 9 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:46:53 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:46:54 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:03 checkpointPersister: no return
+=== run 10 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:46:53 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:46:54 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:03 checkpointPersister: no return
+=== run 11 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:47:04 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:04 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:13 checkpointPersister: no return
+=== run 12 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:47:04 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:04 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:13 checkpointPersister: no return
+=== run 13 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:47:04 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:04 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:13 checkpointPersister: no return
+=== run 14 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:47:04 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:04 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:13 checkpointPersister: no return
+=== run 15 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:47:04 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:04 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:13 checkpointPersister: no return
+=== run 16 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:47:14 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:15 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:23 checkpointPersister: no return
+=== run 17 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:47:14 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:15 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:23 checkpointPersister: no return
+=== run 18 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:47:14 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:15 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:24 checkpointPersister: no return
+=== run 19 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:47:14 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:15 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:24 checkpointPersister: no return
+=== run 20 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:47:14 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:15 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:24 checkpointPersister: no return
+=== run 21 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:47:24 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:25 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:34 checkpointPersister: no return
+=== run 22 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:47:25 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:25 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:34 checkpointPersister: no return
+=== run 23 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:47:24 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:25 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:34 checkpointPersister: no return
+=== run 24 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:47:25 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:25 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:34 checkpointPersister: no return
+=== run 25 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:47:24 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:25 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:34 checkpointPersister: no return
+=== run 26 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:47:35 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:35 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:44 checkpointPersister: no return
+=== run 27 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:47:35 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:36 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:44 checkpointPersister: no return
+=== run 28 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:47:35 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:36 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:44 checkpointPersister: no return
+=== run 29 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:47:35 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:36 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:44 checkpointPersister: no return
+=== run 30 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:47:35 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:36 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:44 checkpointPersister: no return
+=== run 31 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:47:45 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:46 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:55 checkpointPersister: no return
+=== run 32 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:47:45 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:46 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:55 checkpointPersister: no return
+=== run 33 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:47:45 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:46 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:55 checkpointPersister: no return
+=== run 34 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:47:45 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:46 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:55 checkpointPersister: no return
+=== run 35 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:47:45 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:46 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:55 checkpointPersister: no return
+=== run 36 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:47:56 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:56 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:05 checkpointPersister: no return
+=== run 37 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:47:56 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:56 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:05 checkpointPersister: no return
+=== run 38 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:47:56 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:56 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:05 checkpointPersister: no return
+=== run 39 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:47:55 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:56 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:05 checkpointPersister: no return
+=== run 40 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:47:56 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:47:56 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:05 checkpointPersister: no return
+=== run 41 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:48:06 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:06 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:15 checkpointPersister: no return
+=== run 42 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:48:06 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:07 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:15 checkpointPersister: no return
+=== run 43 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:48:06 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:07 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:15 checkpointPersister: no return
+=== run 44 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:48:06 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:07 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:15 checkpointPersister: no return
+=== run 45 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:48:06 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:07 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:15 checkpointPersister: no return
+=== run 46 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:48:16 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:17 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:26 checkpointPersister: no return
+=== run 47 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:48:16 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:17 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:26 checkpointPersister: no return
+=== run 48 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:48:16 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:17 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:26 checkpointPersister: no return
+=== run 49 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:48:16 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:17 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:26 checkpointPersister: no return
+=== run 50 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:48:16 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:17 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:26 checkpointPersister: no return
+=== run 51 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:48:26 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:27 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:36 checkpointPersister: no return
+=== run 52 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:48:27 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:27 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:36 checkpointPersister: no return
+=== run 53 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:48:27 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:27 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:36 checkpointPersister: no return
+=== run 54 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:48:27 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:27 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:36 checkpointPersister: no return
+=== run 55 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:48:27 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:27 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:36 checkpointPersister: no return
+=== run 56 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:48:37 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:37 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:46 checkpointPersister: no return
+=== run 57 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:48:37 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:38 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:46 checkpointPersister: no return
+=== run 58 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:48:37 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:38 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:47 checkpointPersister: no return
+=== run 59 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:48:37 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:38 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:47 checkpointPersister: no return
+=== run 60 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:48:37 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:38 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:47 checkpointPersister: no return
+=== run 61 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:48:47 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:48 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:57 checkpointPersister: no return
+=== run 62 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:48:47 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:48 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:57 checkpointPersister: no return
+=== run 63 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:48:48 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:48 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:57 checkpointPersister: no return
+=== run 64 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:48:47 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:48 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:57 checkpointPersister: no return
+=== run 65 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:48:47 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:48 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:57 checkpointPersister: no return
+=== run 66 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:48:58 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:58 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:49:07 checkpointPersister: no return
+=== run 67 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:48:58 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:58 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:49:07 checkpointPersister: no return
+=== run 68 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:48:58 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:59 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:49:07 checkpointPersister: no return
+=== run 69 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:48:58 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:59 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:49:07 checkpointPersister: no return
+=== run 70 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:48:58 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:48:58 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:49:07 checkpointPersister: no return
+=== run 71 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:49:08 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:49:09 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:49:17 checkpointPersister: no return
+=== run 72 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:49:08 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:49:09 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:49:18 checkpointPersister: no return
+=== run 73 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:49:08 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:49:09 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:49:18 checkpointPersister: no return
+=== run 74 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:49:08 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:49:09 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:49:18 checkpointPersister: no return
+=== run 75 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:49:08 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:49:09 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:49:18 checkpointPersister: no return
+=== run 76 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:49:18 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:49:19 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:49:28 checkpointPersister: no return
+=== run 77 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:49:18 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:49:19 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:49:28 checkpointPersister: no return
+=== run 78 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:49:19 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:49:19 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:49:28 checkpointPersister: no return
+=== run 79 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:49:19 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:49:19 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:49:28 checkpointPersister: no return
+=== run 80 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:49:19 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:49:19 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:49:28 checkpointPersister: no return
+=== run 81 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:49:29 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:49:29 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:49:38 checkpointPersister: no return
+=== run 82 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:49:29 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:49:30 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:49:38 checkpointPersister: no return
+=== run 83 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:49:29 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:49:30 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:49:38 checkpointPersister: no return
+=== run 84 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:49:29 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:49:30 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:49:38 checkpointPersister: no return
+=== run 85 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:49:29 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:49:30 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:49:39 checkpointPersister: no return
+=== run 86 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:49:39 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:49:40 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:49:49 checkpointPersister: no return
+=== run 87 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:49:39 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:49:40 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:49:49 checkpointPersister: no return
+=== run 88 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:49:39 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:49:40 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:49:49 checkpointPersister: no return
+=== run 89 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:49:39 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:49:40 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:49:49 checkpointPersister: no return
+=== run 90 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:49:40 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:49:40 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:49:49 checkpointPersister: no return
+=== run 91 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:49:49 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:49:50 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:49:59 checkpointPersister: no return
+=== run 92 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:49:50 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:49:50 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:49:59 checkpointPersister: no return
+=== run 93 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:49:50 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:49:51 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:49:59 checkpointPersister: no return
+=== run 94 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:49:50 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:49:50 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:49:59 checkpointPersister: no return
+=== run 95 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:49:50 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:49:51 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:50:00 checkpointPersister: no return
+=== run 96 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:50:00 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:50:00 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:50:09 checkpointPersister: no return
+=== run 97 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:50:00 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:50:01 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:50:09 checkpointPersister: no return
+=== run 98 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:50:00 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:50:01 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:50:10 checkpointPersister: no return
+=== run 99 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:50:00 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:50:01 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:50:10 checkpointPersister: no return
+=== run 100 ===
+Test RSM basic (reliable network)...
+2026/07/12 12:50:00 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:50:01 DoOp should execute only Inc and not rsm.Op
+2026/07/12 12:50:10 checkpointPersister: no return
+
+==================== SUMMARY ====================
+suite      : 4a
+total runs : 100  (parallelism 5)
+passed     : 100
+failed     : 0
+elapsed    : 3m 29s
+=================================================
