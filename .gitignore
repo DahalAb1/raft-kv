@@ -1,7 +1,17 @@
-# build artifacts
-*.test
-*.o
-/bin/
-
-# macOS
+# OS/editor noise
 .DS_Store
+*.swp
+*.tmp
+
+# Build/test artifacts
+*.test
+*.out
+main/*d
+
+# Course/private artifacts that should not be published
+kvraft.pdf
+raft/out_*.txt
+kvraft/out_*.txt
+
+# Raw private development notes. Keep locally; fold sanitized content into docs.
+context/
