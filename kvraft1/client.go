@@ -99,9 +99,11 @@ func (ck *Clerk) Put(key string, value string, version rpc.Tversion) rpc.Err {
 			return reply.Err
 		}
 
-		if !ok {
-			resent = true
-		}
+		// no verdict this attempt — and ErrWrongLeader is not a safe "no":
+		// the server's Submit can time out on an entry already replicated
+		// to a majority, which the next leader must have and will commit.
+		// either way a later ErrVersion can't be trusted as a definite no.
+		resent = true
 
 		i = i + 1
 		if i == len(ck.servers) {

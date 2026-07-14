@@ -64,6 +64,10 @@ type Raft struct {
 	pendingSnapshot []byte
 	pendingSnapIndex int
 	pendingSnapTerm int
+
+	// 4B --> speed: Start() kicks this so the leader loop replicates the
+	// new entry immediately instead of finishing its 100ms heartbeat sleep
+	startKick chan struct{}
 }
 
 // return currentTerm and whether this server
@@ -660,6 +664,13 @@ func (rf *Raft) Start(command interface{}) (int, int, bool) {
 		
 		// persist # 3
 		rf.persist()
+
+		// wake the leader loop now so this entry replicates immediately.
+		// non-blocking: if a kick is already pending, that's enough.
+		select {
+		case rf.startKick <- struct{}{}:
+		default:
+		}
 	return index, term, isLeader
 }
 
@@ -668,9 +679,6 @@ func (rf *Raft) Start(command interface{}) (int, int, bool) {
 func (rf *Raft) ticker() {
 
 	for !rf.killed() {
-		// pause each iteration so the follower path doesn't busy-spin
-		time.Sleep(10 * time.Millisecond)
-
 		rf.mu.Lock()
 			role := rf.role
 			term := rf.currentTerm
@@ -818,10 +826,29 @@ func (rf *Raft) ticker() {
 							}
 						} else {
 
-							// to prevent any backward change in the leader's matchIndex 
+							// to prevent any backward change in the leader's matchIndex
 							// some stale requests could change the matchIndex to a lower value, and it should never go backward
 							rf.matchIndex[p] = max(rf.matchIndex[p], req.PrevLogIndex + len(req.Entries))
-							rf.nextIndex[p] = rf.matchIndex[p] + 1 
+							rf.nextIndex[p] = rf.matchIndex[p] + 1
+
+							// this ack may be the one that reaches majority — advance
+							// commitIndex here instead of waiting for the ticker's
+							// next round. same scan as the ticker's: current-term only.
+							for n := rf.log[0].Index + len(rf.log) - 1; n > rf.commitIndex; n-- {
+								if rf.log[n - rf.log[0].Index].Term != rf.currentTerm {
+									continue
+								}
+								count := 1
+								for q := range rf.peers {
+									if q != rf.me && rf.matchIndex[q] >= n {
+										count++
+									}
+								}
+								if count > len(rf.peers)/2 {
+									rf.commitIndex = n
+									break
+								}
+							}
 						}
 					}
 				}(peer, appendRPCreq, appendRPCres)
@@ -864,12 +891,21 @@ func (rf *Raft) ticker() {
 			rf.mu.Unlock()
 			
 
-			// sleep for 100ms before sending another AppendRPC, the lab only accpets appendRPC 10 times per second. 
-			time.Sleep(100 * time.Millisecond)
+			// sleep up to 100ms before the next round (idle heartbeats are
+			// capped at 10/sec) — but wake early if Start() just appended
+			// an entry, so ops don't pay the heartbeat interval
+			select {
+			case <-rf.startKick:
+			case <-time.After(100 * time.Millisecond):
+			}
 			// skips the candidate's election logic after sending heatbeats to all other server
 			continue
 		}
 
+
+		// pause here so the follower/candidate path doesn't busy-spin;
+		// the leader path paces itself with the select at the end of its branch
+		time.Sleep(10 * time.Millisecond)
 
 		// Follower -> Candidate
 		rf.mu.Lock()
@@ -1039,6 +1075,8 @@ func Make(peers []*labrpc.ClientEnd, me int,
 	rf.lastApplied = 0
 	rf.nextIndex   = make([]int, len(rf.peers))
 	rf.matchIndex  = make([]int, len(rf.peers))
+	// buffered 1: one pending kick is enough to wake the next round
+	rf.startKick   = make(chan struct{}, 1)
 
 	// initially have nextIndex and matchIndex
 	for p := range peers{ 
