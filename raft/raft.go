@@ -15,10 +15,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	"6.5840/labgob"
-	"6.5840/labrpc"
-	"6.5840/raftapi"
-	"6.5840/tester1"
+	"raft-kv/labgob"
+	"raft-kv/labrpc"
+	"raft-kv/raftapi"
+	"raft-kv/tester"
 )
 
 const (
@@ -27,7 +27,6 @@ const (
     Leader    = 2
 )
 
-// 3B 
 type LogEntry struct { 
 	Command interface{}
 	Term int // term when entry was recieved
@@ -42,30 +41,27 @@ type Raft struct {
 	persister *tester.Persister   // Object to hold this peer's persisted state
 	me        int                 // this peer's index into peers[]
 
-	// Your data here (3A, 3B, 3C).
-	// Look at the paper's Figure 2 for a description of what
-	// state a Raft server must maintain.
 	
-	// 3A --> Election
+	// election state
 	currentTerm int
 	votedFor int
 	role int
 	electionDeadline time.Time // next moment the ticker may campaign; re-drawn randomly on every reset
 	dead int32 // set by Kill(), read by killed(); atomic so no lock needed
 
-	// 3B --> Log Replication 
+	// log replication state
 	log []LogEntry
 	commitIndex int 
 	lastApplied int 
 	nextIndex []int
 	matchIndex []int
 
-	// 3D --> Snapshot
+	// snapshot state
 	pendingSnapshot []byte
 	pendingSnapIndex int
 	pendingSnapTerm int
 
-	// 4B --> speed: Start() kicks this so the leader loop replicates the
+	// speed: Start() kicks this so the leader loop replicates the
 	// new entry immediately instead of finishing its 100ms heartbeat sleep
 	startKick chan struct{}
 }
@@ -80,7 +76,6 @@ func (rf *Raft) GetState() (int, bool) {
 
 	var term int
 	var isleader bool
-	// Your code here (3A).
 
 	term = rf.currentTerm
 	
@@ -100,7 +95,6 @@ func (rf *Raft) GetState() (int, bool) {
 // after you've implemented snapshots, pass the current snapshot
 // (or nil if there's not yet a snapshot).
 func (rf *Raft) persist() {
-	// Your code here (3C).
 	// Example:
 	w := new(bytes.Buffer)
 	e := labgob.NewEncoder(w)
@@ -134,13 +128,11 @@ func (rf *Raft) readPersist(data []byte) {
 	if data == nil || len(data) < 1 { // bootstrap without any state?
 		return
 	}
-	// Your code here (3C).
 	// Example:
 	// r := bytes.NewBuffer(data)
 	// d := labgob.NewDecoder(r)
 	// var xxx
 	// var yyy
-	// if d.Decode(&xxx) != nil ||go test -run 3B -count=1
 	//    d.Decode(&yyy) != nil {
 	//   error...
 	// } else {
@@ -208,7 +200,6 @@ func (rf *Raft) PersistBytes() int {
 func (rf *Raft) Snapshot(index int, snapshot []byte) {
 	 rf.mu.Lock()
       defer rf.mu.Unlock()
-      // Your code here (3D).
 
       offset := rf.log[0].Index
       if index <= offset || index > rf.commitIndex {
@@ -234,7 +225,7 @@ func (rf *Raft) Snapshot(index int, snapshot []byte) {
 }
 
 // the tester doesn't halt goroutines created by Raft after each test,
-// but it does call Kill(). your code can use killed() to check whether
+// but it does call Kill(). goroutines use killed() to check whether
 // Kill() has been called. the use of atomic avoids the need for a lock.
 //
 // the issue is that long-running goroutines use memory and may chew
@@ -264,11 +255,9 @@ func (rf *Raft) resetElectionTimer() {
 // example RequestVote RPC arguments structure.
 // field names must start with capital letters!
 type RequestVoteArgs struct {
-	// 3A,
 	CandidateTerm int 
 	CandidateId int 
 
-	// 3B
 	LastLogIndex int 
 	LastLogTerm int 
 
@@ -277,7 +266,6 @@ type RequestVoteArgs struct {
 // example RequestVote RPC reply structure.
 // field names must start with capital letters!
 type RequestVoteReply struct {
-	// Your data here (3A).
 	// if ReplyTerm > rf.CurrentTerm, the candidate is stale 
 	ReplyTerm int  
 	VoteGranted bool
@@ -285,11 +273,9 @@ type RequestVoteReply struct {
 }
 
 type AppendEntriesArgs struct { 
-	// 3A
 	LeaderTerm int 
 	LeaderId int
 	
-	// 3B 
 	PrevLogIndex int 
 	PrevLogTerm int 
 	Entries []LogEntry 
@@ -297,13 +283,11 @@ type AppendEntriesArgs struct {
 }
 
 type AppendEntriesReply struct {
-	// 3A
 	ReplyTerm int
 
-	// 3B
 	Success bool
 
-	// 3C --> fast backup (paper §5.3: "include the term of the conflicting
+	// fast backup (paper §5.3: "include the term of the conflicting
 	// entry and the first index it stores for that term")
 	XTerm int  // term of the conflicting entry at PrevLogIndex, -1 if log too short
 	XIndex int // first index the follower stores for XTerm
@@ -351,7 +335,7 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply
 			reply.ReplyTerm = rf.currentTerm
 
 			
-			// 3D: the log is trimmed after a snapshot, so an entry's global index
+			// the log is trimmed after a snapshot, so an entry's global index
 			// no longer equals its slice position. slot 0 is the sentinel and its
 			// Index is the offset: slice position = global index - offset.
 			offset := rf.log[0].Index
@@ -541,7 +525,6 @@ func (rf *Raft) sendInstallSnapshot(server int, args *InstallSnapshotArgs, reply
 
 // example RequestVote RPC handler.
 func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
-	// Your code here (3A, 3B).
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
 
@@ -568,7 +551,7 @@ func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
 	// we first compare the term, if the candidate's greater then we konw it's most up to date
 	// if the term is same of the candidate, we will check the size of the index to figure out if the candidate is most up to date. 
 	// this preserves the log completeness property. 
-	// 3D: last slice element is still our last entry, but its global index is
+	// last slice element is still our last entry, but its global index is
 	// offset + len - 1 now, and that's what the candidate's LastLogIndex means
 	isValid := (args.LastLogTerm > rf.log[len(rf.log)-1].Term  || (args.LastLogTerm == rf.log[len(rf.log)-1].Term && args.LastLogIndex >= rf.log[0].Index + len(rf.log) - 1))
 	// can we vote? 
@@ -640,7 +623,6 @@ func (rf *Raft) Start(command interface{}) (int, int, bool) {
 	term := -1
 	isLeader := true
 
-	// Your code here (3B).
 
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
@@ -648,7 +630,7 @@ func (rf *Raft) Start(command interface{}) (int, int, bool) {
 		if rf.role != Leader { 
 			return -1,-1, false 
 		}
-		// the new entry takes the next free global index (3D: offset + length)
+		// the new entry takes the next free global index (snapshot offset + length)
 		curIndx := rf.log[0].Index + len(rf.log)
 
 		curLog := LogEntry{
@@ -709,7 +691,7 @@ func (rf *Raft) ticker() {
 				offset := rf.log[0].Index
 				prevIndex := rf.nextIndex[peer] - 1
 
-				// 3D: this follower needs entries we burned into the snapshot —
+				// this follower needs entries we burned into the snapshot —
 				// we can't build an AppendEntries for it anymore. send the whole
 				// snapshot instead; the follower installs it and the next tick
 				// resumes normal AppendEntries from right after it.
@@ -816,7 +798,7 @@ func (rf *Raft) ticker() {
 								// ...unless we also have entries of that term:
 								// those match, so start right after our last one.
 								// i here is a slice position — the entry's own
-								// Index field gives the global index (3D)
+								// Index field gives the global index
 								for i := len(rf.log) - 1; i > 0; i-- {
 									if rf.log[i].Term == res.XTerm {
 										rf.nextIndex[p] = rf.log[i].Index + 1
@@ -857,7 +839,7 @@ func (rf *Raft) ticker() {
 			// majority. only commit entries from the current term
 			rf.mu.Lock()
 			// n is a global index (matchIndex and commitIndex speak global),
-			// so it starts at offset + len - 1 and rf.log access subtracts (3D)
+			// so it starts at offset + len - 1 and rf.log access subtracts
 			for n := rf.log[0].Index + len(rf.log) - 1; n > rf.commitIndex; n-- {
 
 				// checking if the new server has recieved new log entries
@@ -924,7 +906,7 @@ func (rf *Raft) ticker() {
 			term = rf.currentTerm
 			rf.resetElectionTimer()
 
-			// 3B (3D: global last index; term still read from the slice's last slot)
+			// global last index; term still read from the slice's last slot
 			lastLogIndx := rf.log[0].Index + len(rf.log) - 1
 			lastLogTerm := rf.log[len(rf.log) - 1].Term
 
@@ -937,7 +919,6 @@ func (rf *Raft) ticker() {
 					CandidateTerm : term, 
 					CandidateId : rf.me,
 
-					// 3B 
 					LastLogIndex: lastLogIndx,
 					LastLogTerm: lastLogTerm,
 				}
@@ -1027,7 +1008,7 @@ func (rf *Raft) ticker() {
 					// re initialize rf.nextIndex[i] and rf.matchIndex[i]
 
 					for i:= range rf.peers {
-						// next free global index, not slice length (3D)
+						// next free global index, not slice length
 						rf.nextIndex[i] = rf.log[0].Index + len(rf.log)
 						rf.matchIndex[i] = 0
 					}
@@ -1059,9 +1040,7 @@ func Make(peers []*labrpc.ClientEnd, me int,
 	rf.persister = persister
 	rf.me        = me
 
-	// Your initialization code here (3A, 3B, 3C).
 	
-	// 3A 
 	rf.currentTerm = 0 
 	rf.votedFor    = -1 
 	rf.role        = Follower
@@ -1069,7 +1048,6 @@ func Make(peers []*labrpc.ClientEnd, me int,
 	// breaks the boot-time synchronization (all five used to share now+400ms)
 	rf.resetElectionTimer()
 
-	// 3B
 	rf.log         = []LogEntry{{Term : 0, Index : 0}}
 	rf.commitIndex = 0
 	rf.lastApplied = 0
@@ -1087,7 +1065,6 @@ func Make(peers []*labrpc.ClientEnd, me int,
 	// initialize from state persisted before a crash
 	rf.readPersist(persister.ReadRaftState())
 
-	// 3D 
 	// Rebooting the server will restore the previous state of this server
 	// the first value in the log stores the snapshot's index, therefore we can safely apply the snapshot's result here
 	rf.commitIndex = rf.log[0].Index
@@ -1120,7 +1097,7 @@ func Make(peers []*labrpc.ClientEnd, me int,
 
 			if rf.commitIndex > rf.lastApplied {
 				rf.lastApplied ++
-				// lastApplied is a global index — subtract offset for the slice (3D)
+				// lastApplied is a global index — subtract offset for the slice
 				cmd := rf.log[rf.lastApplied - rf.log[0].Index].Command
 				indx := rf.log[rf.lastApplied - rf.log[0].Index].Index
 				rf.mu.Unlock()

@@ -11,7 +11,7 @@ const (
 	// Err returned by Clerk only
 	ErrMaybe = "ErrMaybe"
 
-	// For future kvraft lab
+	// Used by the raft-backed KV service
 	ErrWrongLeader = "ErrWrongLeader"
 	ErrWrongGroup  = "ErrWrongGroup"
 )

@@ -1,11 +1,11 @@
 package kvraft
 
 import (
-	"6.5840/kvraft1/rsm"
-	"6.5840/kvsrv1/rpc"
-	"6.5840/labgob"
-	"6.5840/labrpc"
-	"6.5840/tester1"
+	"raft-kv/kvraft/rsm"
+	"raft-kv/kvsrv/rpc"
+	"raft-kv/labgob"
+	"raft-kv/labrpc"
+	"raft-kv/tester"
 
 )
 
@@ -64,12 +64,10 @@ func (kv *KVServer) DoOp(req any) any {
 }
 
 func (kv *KVServer) Snapshot() []byte {
-	// Your code here
 	return nil
 }
 
 func (kv *KVServer) Restore(data []byte) {
-	// Your code here
 }
 
 func (kv *KVServer) Get(args *rpc.GetArgs, reply *rpc.GetReply) {

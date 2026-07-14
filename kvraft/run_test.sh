@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Run a Lab 4 test suite (4A/4B/4C, or ALL of them) N times in parallel,
+# Run a kvraft test suite (4A/4B/4C, or ALL of them) N times in parallel,
 # collect results into out_<suite>.txt, and finish with a diagnostics summary
 # (total / passed / failed / time).
 #
-# Lab 4 tests are split across two packages:
-#   4A: kvraft1/rsm        4B: kvraft1        4C: both
+# Tests are split across two packages:
+#   4A: kvraft/rsm        4B: kvraft        4C: both
 # Each run executes the matching tests from every package that has them.
 #
 # Usage: ./run_test.sh [suite] [runs] [parallel]

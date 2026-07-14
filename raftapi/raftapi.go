@@ -10,7 +10,7 @@ type Raft interface {
 	// leader
 	GetState() (int, bool)
 
-	// For Snaphots (3D)
+	// For snapshots
 	Snapshot(index int, snapshot []byte)
 	PersistBytes() int
 }
@@ -20,7 +20,6 @@ type Raft interface {
 // tester), via the applyCh passed to Make(). Set CommandValid to true
 // to indicate that the ApplyMsg contains a newly committed log entry.
 //
-// You'll find the Snapshot fields useful later in the lab.
 // Exactly one of CommandValid and SnapshotValid should be true.
 type ApplyMsg struct {
 	CommandValid bool

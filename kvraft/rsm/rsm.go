@@ -4,16 +4,15 @@ import (
 	"sync"
 	"time"
 
-	"6.5840/kvsrv1/rpc"
-	"6.5840/labrpc"
-	"6.5840/raft1"
-	"6.5840/raftapi"
-	"6.5840/tester1"
+	"raft-kv/kvsrv/rpc"
+	"raft-kv/labrpc"
+	"raft-kv/raft"
+	"raft-kv/raftapi"
+	"raft-kv/tester"
 
 )
 
 type Op struct {
-	// Your definitions here.
 	// Field names must start with capital letters,
 	// otherwise RPC will break.
 	Me  int
@@ -41,7 +40,6 @@ type RSM struct {
 	applyCh      chan raftapi.ApplyMsg
 	maxraftstate int // snapshot if log grows this big
 	sm           StateMachine
-	// Your definitions here.
 	nextId  int
 	waiters map[int]chan any // waiters watis for committed data
 }
@@ -123,7 +121,6 @@ func (rsm *RSM) Submit(req any) (rpc.Err, any) {
 	// for example: op := Op{Me: rsm.me, Id: id, Req: req}, where req
 	// is the argument to Submit and id is a unique id for the op.
 
-	// your code here
 	rsm.mu.Lock()
 	rsm.nextId += 1
 	cmd := Op{Me: rsm.me, Id: rsm.nextId, Req: req}
