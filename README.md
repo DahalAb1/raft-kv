@@ -1,4 +1,4 @@
-# raft-kv — Building Consensus From the Paper
+# raft-kv | Building Consensus From the Paper
 
 **TL;DR.** I built Raft from [the paper](https://raft.github.io/raft.pdf) in Go: leader election, log
 replication, crash persistence, and snapshots. On top of it sits a
