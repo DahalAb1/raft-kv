@@ -15,3 +15,5 @@ kvraft/out_*.txt
 
 # Raw private development notes. Keep locally; fold sanitized content into docs.
 context/
+STATUS.md 
+DEMO_REPO_SPEC.md
