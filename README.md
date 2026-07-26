@@ -8,6 +8,8 @@ hardest bugs failed at rates (14%, 9%, 2.5%) rather than
 deterministically, and were found by measurement, not by reading. This
 README is the full build story, chapter by chapter, bug by bug.
 
+**[▶ Live demo](https://dahalab1.github.io/raft-demo/)** — see it in action.
+
 ## Introduction
 
 ### What this is
@@ -93,17 +95,6 @@ never show you. [Chapter 7](#chapter-7--testing-how-the-bugs-were-actually-found
 rates, reading latency histograms, and catching the test harness itself
 lying. It is, honestly, the chapter I would keep if I could only keep one.
 
-### What this document is
-
-A technical memoir, not API documentation. Each chapter covers one layer:
-the problem it exists to solve, what I built, why it's shaped the way it
-is, and the bugs that taught me what the paper's sentences actually mean.
-Read in order, the system emerges the same way it was built. I wrote it
-for two readers: a stranger deciding whether I understood what I built,
-and me, months from now, needing to reload the whole mental model. Both
-readers get the same treatment: definitions before jargon, the disaster
-before the rule, and the real numbers from the real failures.
-
 ### What you'll learn
 
 If you read the whole thing, you will come away knowing:
@@ -157,9 +148,10 @@ kvraft/        linearizable KV service
   rsm/rsm.go     the Submit → Start → applyCh bridge   -> chapter 5
   client.go      the Clerk: leader hunting, ErrMaybe    -> chapter 6
   server.go      versioned KV state machine             -> chapter 6
-kvsrv/         the earlier single-server KV (defines the versioned Put/Get
-               API that kvraft preserves under replication; rpc/ is the
-               shared request/reply vocabulary both layers speak)
+kvsrv/         API definition only: the versioned Put/Get contract that
+               kvraft preserves under replication (rpc/ is the shared
+               request/reply vocabulary; the single-server implementation
+               is omitted per course policy, like the harness)
 ```
 
 The commit history is the real changelog: the implementation, the
@@ -175,7 +167,6 @@ debugging, and the notes, committed in the order it actually happened.
 - [Chapter 6 — The KV store: linearizability at the edge](#chapter-6--the-kv-store-linearizability-at-the-edge)
 - [Chapter 7 — Testing: how the bugs were actually found](#chapter-7--testing-how-the-bugs-were-actually-found)
 - [References](#references)
-- [Repo map](#repo-map)
 
 ---
 
@@ -1878,8 +1869,5 @@ distributed-systems knowledge.
 - [raft.github.io](https://raft.github.io/): the Raft site, including a
   visualization of elections and replication that is worth five minutes
   of anyone's time.
-- The implementation was built against the MIT 6.5840 lab structure; the
-  note in the [introduction](#introduction) explains what this
-  repository does and does not contain.
 
 The code is [MIT licensed](LICENSE).

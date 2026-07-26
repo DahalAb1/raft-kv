@@ -1,11 +1,8 @@
 package raft
 
-// The file ../raftapi/raftapi.go defines the interface that raft must
-// expose to servers (or the tester), but see comments below for each
-// of these functions for more details.
-//
-// In addition,  Make() creates a new raft peer that implements the
-// raft interface.
+// The consensus core: leader election, log replication, persistence,
+// and snapshots. ../raftapi/raftapi.go defines the interface this file
+// exposes to the service above; Make() creates a peer implementing it.
 
 import (
 	"bytes"
@@ -22,17 +19,16 @@ import (
 )
 
 const (
-    Follower  = 0
-    Candidate = 1
-    Leader    = 2
+	Follower  = 0
+	Candidate = 1
+	Leader    = 2
 )
 
-type LogEntry struct { 
+type LogEntry struct {
 	Command interface{}
-	Term int // term when entry was recieved
-	Index int 
+	Term    int // term when the entry was received
+	Index   int
 }
-
 
 // A Go object implementing a single Raft peer.
 type Raft struct {
@@ -41,25 +37,24 @@ type Raft struct {
 	persister *tester.Persister   // Object to hold this peer's persisted state
 	me        int                 // this peer's index into peers[]
 
-	
 	// election state
-	currentTerm int
-	votedFor int
-	role int
+	currentTerm      int
+	votedFor         int
+	role             int
 	electionDeadline time.Time // next moment the ticker may campaign; re-drawn randomly on every reset
-	dead int32 // set by Kill(), read by killed(); atomic so no lock needed
+	dead             int32     // set by Kill(), read by killed(); atomic so no lock needed
 
 	// log replication state
-	log []LogEntry
-	commitIndex int 
-	lastApplied int 
-	nextIndex []int
-	matchIndex []int
+	log         []LogEntry
+	commitIndex int
+	lastApplied int
+	nextIndex   []int
+	matchIndex  []int
 
 	// snapshot state
-	pendingSnapshot []byte
+	pendingSnapshot  []byte
 	pendingSnapIndex int
-	pendingSnapTerm int
+	pendingSnapTerm  int
 
 	// speed: Start() kicks this so the leader loop replicates the
 	// new entry immediately instead of finishing its 100ms heartbeat sleep
@@ -69,8 +64,6 @@ type Raft struct {
 // return currentTerm and whether this server
 // believes it is the leader.
 func (rf *Raft) GetState() (int, bool) {
-
-	// debugger error in this function as well 
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
 
@@ -78,37 +71,27 @@ func (rf *Raft) GetState() (int, bool) {
 	var isleader bool
 
 	term = rf.currentTerm
-	
-	// data race here as well? 
-	if rf.role == Leader { 
-		isleader = true 
+
+	if rf.role == Leader {
+		isleader = true
 	}
 
 	return term, isleader
 }
 
-// save Raft's persistent state to stable storage,
-// where it can later be retrieved after a crash and restart.
-// see paper's Figure 2 for a description of what should be persistent.
-// before you've implemented snapshots, you should pass nil as the
-// second argument to persister.Save().
-// after you've implemented snapshots, pass the current snapshot
-// (or nil if there's not yet a snapshot).
+// save Raft's persistent state — currentTerm, votedFor, and the log,
+// Figure 2's triple — to stable storage. called after the last mutation
+// and before the mutex is released, so nobody can observe a change that
+// is not yet on disk. Save() rewrites both slots of the disk, so the
+// existing snapshot is passed through — nil here would erase it.
+// caller must hold rf.mu.
 func (rf *Raft) persist() {
-	// Example:
 	w := new(bytes.Buffer)
 	e := labgob.NewEncoder(w)
 
-	// take the persistent states, and save these into w
 	per_CurTerm := rf.currentTerm
-	per_VoteFor := rf.votedFor 
-	per_log 	:= rf.log
-
-
-	// e.Encode(rf.xxx)
-	// e.Encode(rf.yyy)
-	// raftstate := w.Bytes()
-	// rf.persister.Save(raftstate, nil)
+	per_VoteFor := rf.votedFor
+	per_log := rf.log
 
 	e.Encode(per_CurTerm)
 	e.Encode(per_VoteFor)
@@ -116,9 +99,7 @@ func (rf *Raft) persist() {
 
 	raftstate := w.Bytes()
 	rf.persister.Save(raftstate, rf.persister.ReadSnapshot())
-
 }
-
 
 // restore previously persisted state.
 func (rf *Raft) readPersist(data []byte) {
@@ -128,61 +109,32 @@ func (rf *Raft) readPersist(data []byte) {
 	if data == nil || len(data) < 1 { // bootstrap without any state?
 		return
 	}
-	// Example:
-	// r := bytes.NewBuffer(data)
-	// d := labgob.NewDecoder(r)
-	// var xxx
-	// var yyy
-	//    d.Decode(&yyy) != nil {
-	//   error...
-	// } else {
-	//   rf.xxx = xxx
-	//   rf.yyy = yyy
-	// }
-
-	// Previously persisted state should get the stored value from memory 
-	// after getting the values store it into the raft's structure 
-	// persistent states are : 
-	// currentTerm, votedFor, log[] 
-	
 	r := bytes.NewBuffer(data)
 	d := labgob.NewDecoder(r)
 
-	var per_CurTerm int 
-	var per_VoteFor int 
-	var per_Log []LogEntry 
+	var per_CurTerm int
+	var per_VoteFor int
+	var per_Log []LogEntry
 
 	gotCurTerm := d.Decode(&per_CurTerm)
 	gotVotedFor := d.Decode(&per_VoteFor)
 	gotLog := d.Decode(&per_Log)
 
-	if gotCurTerm 	!= nil || 
-	   gotVotedFor  != nil || 
-	   gotLog 		!= nil {
-	
-			  // We land here when Decode returned an error for given data []byte.
-              // That means: the file had data, but we could not turn it back into
-              // currentTerm / votedFor / log. The data is broken.
-              // If we took the currpted data, this server would start fresh
-              // with term 0 and no vote, as if it never voted. 
-			  // A server like that can vote a second time in a term it already voted in, and two leaders can win, which is a big problem. 
-              //
-              // We do not proceed in this case. We handle this error by building one message saying which decode failed, and panic.
-              // Panic stops the program and prints a stack trace, so we see
-              // exactly where it died.
+	if gotCurTerm != nil ||
+		gotVotedFor != nil ||
+		gotLog != nil {
 
-			// panic will be really helpful when we are debugging: it fails the test
-            // right away instead of letting bad state cause a weird failure much
-            // later, like two different votes from a server in the same term.
-		
-		
+		// the disk had data we couldn't decode. proceeding would boot this
+		// server fresh — term 0, no vote — and a server that forgets its
+		// vote can vote twice in the same term, electing two leaders.
+		// fail loudly, naming the decode that broke, instead.
 		panic(fmt.Sprintf("readPersist: decode failed (currentTerm: %v, votedFor: %v, log: %v)", gotCurTerm, gotVotedFor, gotLog))
 
 	} else {
 		rf.currentTerm = per_CurTerm
-        rf.votedFor = per_VoteFor
-        rf.log = per_Log
-    }
+		rf.votedFor = per_VoteFor
+		rf.log = per_Log
+	}
 }
 
 // how many bytes in Raft's persisted log?
@@ -192,36 +144,37 @@ func (rf *Raft) PersistBytes() int {
 	return rf.persister.RaftStateSize()
 }
 
-
 // the service says it has created a snapshot that has
 // all info up to and including index. this means the
 // service no longer needs the log through (and including)
 // that index. Raft should now trim its log as much as possible.
 func (rf *Raft) Snapshot(index int, snapshot []byte) {
-	 rf.mu.Lock()
-      defer rf.mu.Unlock()
+	rf.mu.Lock()
+	defer rf.mu.Unlock()
 
-      offset := rf.log[0].Index
-      if index <= offset || index > rf.commitIndex {
-              return
-      }
+	// ignore points already inside the snapshot or not yet committed
+	offset := rf.log[0].Index
+	if index <= offset || index > rf.commitIndex {
+		return
+	}
 
-      
-      newLog := make([]LogEntry, len(rf.log)-(index-offset))
-      copy(newLog, rf.log[index-offset:])
-      newLog[0].Command = nil 
-      rf.log = newLog
+	// copy into a fresh slice so the old backing array — the burned
+	// entries — can actually be garbage collected. slot 0 becomes the
+	// sentinel: Command dropped (the blob owns the data now), Index and
+	// Term kept.
+	newLog := make([]LogEntry, len(rf.log)-(index-offset))
+	copy(newLog, rf.log[index-offset:])
+	newLog[0].Command = nil
+	rf.log = newLog
 
-
-
-      w := new(bytes.Buffer)
-      e := labgob.NewEncoder(w)
-      e.Encode(rf.currentTerm)
-      e.Encode(rf.votedFor)
-      e.Encode(rf.log)
-      rf.persister.Save(w.Bytes(), snapshot)
-
-
+	// state and blob in one Save(): after the trim, the blob is the only
+	// copy of the burned history
+	w := new(bytes.Buffer)
+	e := labgob.NewEncoder(w)
+	e.Encode(rf.currentTerm)
+	e.Encode(rf.votedFor)
+	e.Encode(rf.log)
+	rf.persister.Save(w.Bytes(), snapshot)
 }
 
 // the tester doesn't halt goroutines created by Raft after each test,
@@ -251,35 +204,29 @@ func (rf *Raft) resetElectionTimer() {
 	rf.electionDeadline = time.Now().Add(time.Duration(ms) * time.Millisecond)
 }
 
-
-// example RequestVote RPC arguments structure.
-// field names must start with capital letters!
+// field names in RPC structs must be exported, or gob drops them silently
 type RequestVoteArgs struct {
-	CandidateTerm int 
-	CandidateId int 
+	CandidateTerm int
+	CandidateId   int
 
-	LastLogIndex int 
-	LastLogTerm int 
-
+	LastLogIndex int
+	LastLogTerm  int
 }
 
-// example RequestVote RPC reply structure.
-// field names must start with capital letters!
 type RequestVoteReply struct {
-	// if ReplyTerm > rf.CurrentTerm, the candidate is stale 
-	ReplyTerm int  
+	// if ReplyTerm > rf.CurrentTerm, the candidate is stale
+	ReplyTerm   int
 	VoteGranted bool
-
 }
 
-type AppendEntriesArgs struct { 
-	LeaderTerm int 
-	LeaderId int
-	
-	PrevLogIndex int 
-	PrevLogTerm int 
-	Entries []LogEntry 
-	LeaderCommit int 
+type AppendEntriesArgs struct {
+	LeaderTerm int
+	LeaderId   int
+
+	PrevLogIndex int
+	PrevLogTerm  int
+	Entries      []LogEntry
+	LeaderCommit int
 }
 
 type AppendEntriesReply struct {
@@ -289,163 +236,139 @@ type AppendEntriesReply struct {
 
 	// fast backup (paper §5.3: "include the term of the conflicting
 	// entry and the first index it stores for that term")
-	XTerm int  // term of the conflicting entry at PrevLogIndex, -1 if log too short
+	XTerm  int // term of the conflicting entry at PrevLogIndex, -1 if log too short
 	XIndex int // first index the follower stores for XTerm
-	XLen int   // follower's log length, used when XTerm == -1
+	XLen   int // follower's log length, used when XTerm == -1
 }
 
-
-type InstallSnapshotArgs struct { 
-	Term int
-	LeaderId int 
-	LastIncludedIndex int 
-	LastIncludedTerm int 
-	Offset byte 
-	Data[] byte
-	Done bool
-
+type InstallSnapshotArgs struct {
+	Term              int
+	LeaderId          int
+	LastIncludedIndex int
+	LastIncludedTerm  int
+	Offset            byte // unused — the lab ships snapshots whole, no chunking
+	Data              []byte
+	Done              bool // unused, same reason
 }
 
-type InstallSnapshotReply struct { 
+type InstallSnapshotReply struct {
 	Term int
 }
 
 func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply) {
-			rf.mu.Lock()
-			defer rf.mu.Unlock()
+	rf.mu.Lock()
+	defer rf.mu.Unlock()
 
-		// stale leader, here we do not reset election timer
-			if args.LeaderTerm < rf.currentTerm {
-				reply.ReplyTerm = rf.currentTerm
+	// stale leader, here we do not reset election timer
+	if args.LeaderTerm < rf.currentTerm {
+		reply.ReplyTerm = rf.currentTerm
 
-				// fig 2: Reciever Implementation, Reply false if term < currentTerm
-				reply.Success = false 
-				return
-			}
+		// figure 2 receiver rule: reply false if term < currentTerm
+		reply.Success = false
+		return
+	}
 
-		// valid leader, become follower
-			if args.LeaderTerm > rf.currentTerm {
-				rf.currentTerm = args.LeaderTerm
-				rf.votedFor = -1
-			}
-			rf.role = Follower
+	// valid leader, become follower
+	if args.LeaderTerm > rf.currentTerm {
+		rf.currentTerm = args.LeaderTerm
+		rf.votedFor = -1
+	}
+	rf.role = Follower
 
-		// heard from the leader, reset the election timer
-			rf.resetElectionTimer()
-			reply.ReplyTerm = rf.currentTerm
+	// heard from the leader, reset the election timer
+	rf.resetElectionTimer()
+	reply.ReplyTerm = rf.currentTerm
 
-			
-			// the log is trimmed after a snapshot, so an entry's global index
-			// no longer equals its slice position. slot 0 is the sentinel and its
-			// Index is the offset: slice position = global index - offset.
-			offset := rf.log[0].Index
+	// the log is trimmed after a snapshot, so an entry's global index
+	// no longer equals its slice position. slot 0 is the sentinel and its
+	// Index is the offset: slice position = global index - offset.
+	offset := rf.log[0].Index
 
-			// leader is talking about entries we already burned into the snapshot.
-			// everything <= offset is committed, so it matches the leader by
-			// definition — skip past the overlap instead of indexing negative slots.
-			if args.PrevLogIndex < offset {
-				if args.PrevLogIndex + len(args.Entries) <= offset {
-					// the whole RPC is inside our snapshot: nothing new, but it matched
-					reply.Success = true
-					rf.persist()
-					return
-				}
-				args.Entries = args.Entries[offset - args.PrevLogIndex:]
-				args.PrevLogIndex = offset
-				args.PrevLogTerm = rf.log[0].Term
-			}
-
-			if len(rf.log) - 1 >= args.PrevLogIndex - offset && rf.log[args.PrevLogIndex - offset].Term == args.PrevLogTerm {
-					// instead of trunctate lets walk 
-
-					// I had initially implemented this condition by simply truncating the value, which was obvious becuase I had wrong notion, My belief
-					// was that if something was sent serieall through the network, the reciever would get it serially as well, which is completely wrong. i've described why truncate does not work. : 
-					/**
-						Network connection is flaky, sometimes we recieve data serially, sometimes we
-						don't. When we run go routines, 2 different RPC's A and B, where A was sent to
-						the follower before B, B could arrive faster than A. This shows us that we
-						shoud not Trust network connection. In this specific situation if B arrives
-						before A and if B has data that was not present in A, then B would open this
-						condition and then change the log's value. The log grows to a new last index
-						and could be committed by the leader, and applied to the state machine. Now
-						what if A arrives, after B's RPC was committed, and B's data has applied
-						command to state machine. That would be a problem, as the RPC will trigger
-						this condition because the index and the term is correct — and the truncate
-						below would delete the committed entry from our log. A committed entry must
-						never be lost.
-
-						To avoid this problem we take steps to replicate log from the leader to the
-						follower. We look at every log entry from previousIndex, and only remove when
-						there's a real conflict (same index, different term), and only add entries we
-						are missing. Same index and same term means we already have it, so we touch
-						nothing — a stale shorter RPC becomes a no-op. This will ensure committed data
-						stays consistent forever, not just within the term.
-					**/
-					
-					
-					// we'll start from PrevLogIndex+1 (Entries[0]'s slot), one slot per entry.
-					// i is a global index; every rf.log access subtracts offset
-					for i := args.PrevLogIndex + 1; i <= args.PrevLogIndex + len(args.Entries); i++ {
-						entryTerm := args.Entries[i - args.PrevLogIndex - 1].Term
-
-						// slot doesn't exist: our log ends here, append the rest and stop
-						if i - offset >= len(rf.log) {
-							rf.log = append(rf.log, args.Entries[i - args.PrevLogIndex - 1:]...)
-							break
-						}
-
-						// same index, same term: we already have it, touch nothing
-						if rf.log[i - offset].Term == entryTerm {
-							continue
-						}
-
-						// conflict: same index, different term. everything from here on
-						// is a dead branch — truncate it and take the leader's entries
-						rf.log = append(rf.log[:i - offset], args.Entries[i - args.PrevLogIndex - 1:]...)
-						break
-					}
-
-					reply.Success = true
-
-
-			} else {
-				reply.Success = false
-
-				// fast backup: tell the leader enough to skip a whole term of
-				// conflicting entries per RPC instead of walking back one by one
-				if len(rf.log) - 1 < args.PrevLogIndex - offset {
-					// our log is too short to even have PrevLogIndex,
-					// leader should restart from our log's end.
-					// XLen is a global length: trimmed entries still count
-					reply.XTerm = -1
-					reply.XLen = offset + len(rf.log)
-				} else {
-					// we have an entry at PrevLogIndex but its term conflicts.
-					// report that term and walk back to the first index we
-					// store for it — everything in that run is the same dead
-					// branch, so the leader can jump over all of it at once
-					reply.XTerm = rf.log[args.PrevLogIndex - offset].Term
-					i := args.PrevLogIndex
-					// stop at offset+1: below that is the sentinel / burned entries
-					for i > offset + 1 && rf.log[i - 1 - offset].Term == reply.XTerm {
-						i--
-					}
-					reply.XIndex = i
-				}
-			}
-
-			// we have to keep track of the minimum commit, therefore the following.
-			// clamp to the last entry THIS RPC vouched for — our log may keep a longer
-			// tail the leader said nothing about, and we must not commit into it
-			if reply.Success && args.LeaderCommit > rf.commitIndex {
-				rf.commitIndex = min(args.LeaderCommit, args.PrevLogIndex + len(args.Entries))
-			}
-
-			// persist #1 
+	// leader is talking about entries we already burned into the snapshot.
+	// everything <= offset is committed, so it matches the leader by
+	// definition — skip past the overlap instead of indexing negative slots.
+	if args.PrevLogIndex < offset {
+		if args.PrevLogIndex+len(args.Entries) <= offset {
+			// the whole RPC is inside our snapshot: nothing new, but it matched
+			reply.Success = true
 			rf.persist()
+			return
+		}
+		args.Entries = args.Entries[offset-args.PrevLogIndex:]
+		args.PrevLogIndex = offset
+		args.PrevLogTerm = rf.log[0].Term
+	}
+
+	if len(rf.log)-1 >= args.PrevLogIndex-offset && rf.log[args.PrevLogIndex-offset].Term == args.PrevLogTerm {
+		// walk, don't truncate. RPCs arrive out of order: a stale, shorter
+		// AppendEntries landing after a longer one still passes the
+		// consistency check (it is a valid prefix), and a blind truncate
+		// at its end would delete entries the leader may have already
+		// committed. so take the entries one slot at a time and delete
+		// only behind a real conflict — same index, different term
+		// (figure 2's rule). same index and term means we already hold
+		// that entry: touch nothing, and a stale RPC becomes a no-op.
+
+		// we'll start from PrevLogIndex+1 (Entries[0]'s slot), one slot per entry.
+		// i is a global index; every rf.log access subtracts offset
+		for i := args.PrevLogIndex + 1; i <= args.PrevLogIndex+len(args.Entries); i++ {
+			entryTerm := args.Entries[i-args.PrevLogIndex-1].Term
+
+			// slot doesn't exist: our log ends here, append the rest and stop
+			if i-offset >= len(rf.log) {
+				rf.log = append(rf.log, args.Entries[i-args.PrevLogIndex-1:]...)
+				break
+			}
+
+			// same index, same term: we already have it, touch nothing
+			if rf.log[i-offset].Term == entryTerm {
+				continue
+			}
+
+			// conflict: same index, different term. everything from here on
+			// is a dead branch — truncate it and take the leader's entries
+			rf.log = append(rf.log[:i-offset], args.Entries[i-args.PrevLogIndex-1:]...)
+			break
+		}
+
+		reply.Success = true
+
+	} else {
+		reply.Success = false
+
+		// fast backup: tell the leader enough to skip a whole term of
+		// conflicting entries per RPC instead of walking back one by one
+		if len(rf.log)-1 < args.PrevLogIndex-offset {
+			// our log is too short to even have PrevLogIndex,
+			// leader should restart from our log's end.
+			// XLen is a global length: trimmed entries still count
+			reply.XTerm = -1
+			reply.XLen = offset + len(rf.log)
+		} else {
+			// we have an entry at PrevLogIndex but its term conflicts.
+			// report that term and walk back to the first index we
+			// store for it — everything in that run is the same dead
+			// branch, so the leader can jump over all of it at once
+			reply.XTerm = rf.log[args.PrevLogIndex-offset].Term
+			i := args.PrevLogIndex
+			// stop at offset+1: below that is the sentinel / burned entries
+			for i > offset+1 && rf.log[i-1-offset].Term == reply.XTerm {
+				i--
+			}
+			reply.XIndex = i
+		}
+	}
+
+	// clamp to the last entry THIS RPC vouched for — our log may keep a longer
+	// tail the leader said nothing about, and we must not commit into it
+	if reply.Success && args.LeaderCommit > rf.commitIndex {
+		rf.commitIndex = min(args.LeaderCommit, args.PrevLogIndex+len(args.Entries))
+	}
+
+	rf.persist()
 }
 
-func (rf *Raft) sendAppendEntries(server int, args *AppendEntriesArgs, reply *AppendEntriesReply) bool { 
+func (rf *Raft) sendAppendEntries(server int, args *AppendEntriesArgs, reply *AppendEntriesReply) bool {
 	appendEntries := rf.peers[server].Call("Raft.AppendEntries", args, reply)
 	return appendEntries
 }
@@ -483,11 +406,11 @@ func (rf *Raft) InstallSnapshot(args *InstallSnapshotArgs, reply *InstallSnapsho
 	}
 
 	offset := rf.log[0].Index
-	if args.LastIncludedIndex <= offset + len(rf.log) - 1 && rf.log[args.LastIncludedIndex - offset].Term == args.LastIncludedTerm {
+	if args.LastIncludedIndex <= offset+len(rf.log)-1 && rf.log[args.LastIncludedIndex-offset].Term == args.LastIncludedTerm {
 		// our log extends past the snapshot and agrees with it — keep the
 		// tail, those entries are still valid (same skip-don't-truncate
 		// philosophy as the AppendEntries walk)
-		newLog := append([]LogEntry(nil), rf.log[args.LastIncludedIndex - offset:]...)
+		newLog := append([]LogEntry(nil), rf.log[args.LastIncludedIndex-offset:]...)
 		newLog[0].Command = nil
 		rf.log = newLog
 	} else {
@@ -522,8 +445,7 @@ func (rf *Raft) sendInstallSnapshot(server int, args *InstallSnapshotArgs, reply
 	return ok
 }
 
-
-// example RequestVote RPC handler.
+// RequestVote RPC handler.
 func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
@@ -540,72 +462,45 @@ func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
 		rf.persist()
 	}
 
-	// comparing term 
+	// stale candidate: reject, and tell it the current term
 	if args.CandidateTerm < rf.currentTerm {
 		reply.VoteGranted = false
 		reply.ReplyTerm = rf.currentTerm
-		return 
+		return
 	}
 
-	// This condition fulfills: is the candidate's log greater, and is the candidate's log most up to date? 
-	// we first compare the term, if the candidate's greater then we konw it's most up to date
-	// if the term is same of the candidate, we will check the size of the index to figure out if the candidate is most up to date. 
-	// this preserves the log completeness property. 
-	// last slice element is still our last entry, but its global index is
-	// offset + len - 1 now, and that's what the candidate's LastLogIndex means
-	isValid := (args.LastLogTerm > rf.log[len(rf.log)-1].Term  || (args.LastLogTerm == rf.log[len(rf.log)-1].Term && args.LastLogIndex >= rf.log[0].Index + len(rf.log) - 1))
-	// can we vote? 
-	voteAvaliable := (rf.votedFor == -1 || rf.votedFor == args.CandidateId) 
-	// comparing log 
-	if !voteAvaliable || !isValid { 
+	// election restriction (§5.4.1): grant only if the candidate's log is
+	// at least as up to date as ours — higher last term wins outright,
+	// equal last terms fall back to length. this is what guarantees the
+	// winner's log holds every committed entry. the last slice element is
+	// our last entry, but its global index is offset + len - 1, which is
+	// what the candidate's LastLogIndex speaks.
+	isValid := (args.LastLogTerm > rf.log[len(rf.log)-1].Term || (args.LastLogTerm == rf.log[len(rf.log)-1].Term && args.LastLogIndex >= rf.log[0].Index+len(rf.log)-1))
+	// one ballot per term — but re-granting to the same candidate is fine
+	// (our earlier reply may have been lost)
+	voteAvailable := (rf.votedFor == -1 || rf.votedFor == args.CandidateId)
+	if !voteAvailable || !isValid {
 		reply.VoteGranted = false
 		reply.ReplyTerm = rf.currentTerm
-		return 
+		return
 	}
 
-
-		rf.votedFor = args.CandidateId
-		reply.VoteGranted = true
-		rf.resetElectionTimer()
+	rf.votedFor = args.CandidateId
+	reply.VoteGranted = true
+	rf.resetElectionTimer()
 
 	reply.ReplyTerm = rf.currentTerm
-	
-	// persist #2 
+
 	rf.persist()
 }
 
-// example code to send a RequestVote RPC to a server.
-// server is the index of the target server in rf.peers[].
-// expects RPC arguments in args.
-// fills in *reply with RPC reply, so caller should
-// pass &reply.
-// the types of the args and reply passed to Call() must be
-// the same as the types of the arguments declared in the
-// handler function (including whether they are pointers).
-//
-// The labrpc package simulates a lossy network, in which servers
-// may be unreachable, and in which requests and replies may be lost.
-// Call() sends a request and waits for a reply. If a reply arrives
-// within a timeout interval, Call() returns true; otherwise
-// Call() returns false. Thus Call() may not return for a while.
-// A false return can be caused by a dead server, a live server that
-// can't be reached, a lost request, or a lost reply.
-//
-// Call() is guaranteed to return (perhaps after a delay) *except* if the
-// handler function on the server side does not return.  Thus there
-// is no need to implement your own timeouts around Call().
-//
-// look at the comments in ../labrpc/labrpc.go for more details.
-//
-// if you're having trouble getting RPC to work, check that you've
-// capitalized all field names in structs passed over RPC, and
-// that the caller passes the address of the reply struct with &, not
-// the struct itself.
+// send a RequestVote RPC to a server. Call() returns true if a reply
+// arrived, false if the server, request, or reply was lost; it always
+// returns eventually, so no extra timeout is needed around it.
 func (rf *Raft) sendRequestVote(server int, args *RequestVoteArgs, reply *RequestVoteReply) bool {
 	ok := rf.peers[server].Call("Raft.RequestVote", args, reply)
 	return ok
 }
-
 
 // the service using Raft (e.g. a k/v server) wants to start
 // agreement on the next command to be appended to Raft's log. if this
@@ -619,51 +514,47 @@ func (rf *Raft) sendRequestVote(server int, args *RequestVoteArgs, reply *Reques
 // term. the third return value is true if this server believes it is
 // the leader.
 func (rf *Raft) Start(command interface{}) (int, int, bool) {
-	index := -1 
+	index := -1
 	term := -1
 	isLeader := true
-
 
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
 
-		if rf.role != Leader { 
-			return -1,-1, false 
-		}
-		// the new entry takes the next free global index (snapshot offset + length)
-		curIndx := rf.log[0].Index + len(rf.log)
+	if rf.role != Leader {
+		return -1, -1, false
+	}
+	// the new entry takes the next free global index (snapshot offset + length)
+	curIndx := rf.log[0].Index + len(rf.log)
 
-		curLog := LogEntry{
-		Command : command,
-		Term : rf.currentTerm,
-		Index : curIndx,
-		}
+	curLog := LogEntry{
+		Command: command,
+		Term:    rf.currentTerm,
+		Index:   curIndx,
+	}
 
-		rf.log = append(rf.log, curLog)
+	rf.log = append(rf.log, curLog)
 
-		term = rf.currentTerm
-		index = curIndx
-		
-		// persist # 3
-		rf.persist()
+	term = rf.currentTerm
+	index = curIndx
 
-		// wake the leader loop now so this entry replicates immediately.
-		// non-blocking: if a kick is already pending, that's enough.
-		select {
-		case rf.startKick <- struct{}{}:
-		default:
-		}
+	rf.persist()
+
+	// wake the leader loop now so this entry replicates immediately.
+	// non-blocking: if a kick is already pending, that's enough.
+	select {
+	case rf.startKick <- struct{}{}:
+	default:
+	}
 	return index, term, isLeader
 }
-
-
 
 func (rf *Raft) ticker() {
 
 	for !rf.killed() {
 		rf.mu.Lock()
-			role := rf.role
-			term := rf.currentTerm
+		role := rf.role
+		term := rf.currentTerm
 		rf.mu.Unlock()
 
 		if role == Leader {
@@ -740,21 +631,18 @@ func (rf *Raft) ticker() {
 					continue
 				}
 
-				appendRPCreq := AppendEntriesArgs {
-					LeaderTerm   : term,
-					LeaderId     : rf.me,
-					PrevLogIndex : prevIndex,
-					PrevLogTerm  : rf.log[prevIndex - offset].Term,
-					Entries      : append([]LogEntry{}, rf.log[prevIndex + 1 - offset:]...),
-					LeaderCommit : rf.commitIndex,
+				appendRPCreq := AppendEntriesArgs{
+					LeaderTerm:   term,
+					LeaderId:     rf.me,
+					PrevLogIndex: prevIndex,
+					PrevLogTerm:  rf.log[prevIndex-offset].Term,
+					Entries:      append([]LogEntry{}, rf.log[prevIndex+1-offset:]...),
+					LeaderCommit: rf.commitIndex,
 				}
 				appendRPCres := AppendEntriesReply{}
 				rf.mu.Unlock()
-				
-				
 
-
-				go func (p int, req AppendEntriesArgs, res AppendEntriesReply) {
+				go func(p int, req AppendEntriesArgs, res AppendEntriesReply) {
 					if rf.sendAppendEntries(p, &req, &res) {
 
 						// follower has a higher term: we are a stale leader, so update
@@ -769,21 +657,17 @@ func (rf *Raft) ticker() {
 							rf.persist()
 							return
 						}
-						
-						
-						// drop replies from servers that disconnected and are still accepting past replies 
-						// reply should only be valid for the term it is requesting that term in 
-						// this guards against delay in client response, if leader fails and becomes leader again, and recieves old term's requests. 
 
-
-						// A stale reply from a follower can incorrectly cause the leader to update nextIndex and matchIndex. 
-						// The leader may then believe that the follower has a valid copy of the current log entry, 
-						// even though the reply only confirmed an old request from a previous term.
-						if rf.role != Leader || rf.currentTerm != req.LeaderTerm { 
-							return 
+						// a reply is only valid for the term it was requested in:
+						// if we lost and re-won leadership since this RPC went
+						// out, its reply answers a previous incarnation's
+						// question and must not touch this term's fresh
+						// nextIndex/matchIndex bookkeeping.
+						if rf.role != Leader || rf.currentTerm != req.LeaderTerm {
+							return
 						}
 
-						if res.Success  == false {
+						if res.Success == false {
 							// fast backup: skip a whole conflicting term per RPC
 							// instead of stepping nextIndex back one entry at a time
 							if res.XTerm == -1 {
@@ -808,16 +692,16 @@ func (rf *Raft) ticker() {
 							}
 						} else {
 
-							// to prevent any backward change in the leader's matchIndex
-							// some stale requests could change the matchIndex to a lower value, and it should never go backward
-							rf.matchIndex[p] = max(rf.matchIndex[p], req.PrevLogIndex + len(req.Entries))
+							// max: replies arrive out of order even within one
+							// term, and matchIndex must never move backward
+							rf.matchIndex[p] = max(rf.matchIndex[p], req.PrevLogIndex+len(req.Entries))
 							rf.nextIndex[p] = rf.matchIndex[p] + 1
 
 							// this ack may be the one that reaches majority — advance
 							// commitIndex here instead of waiting for the ticker's
 							// next round. same scan as the ticker's: current-term only.
 							for n := rf.log[0].Index + len(rf.log) - 1; n > rf.commitIndex; n-- {
-								if rf.log[n - rf.log[0].Index].Term != rf.currentTerm {
+								if rf.log[n-rf.log[0].Index].Term != rf.currentTerm {
 									continue
 								}
 								count := 1
@@ -836,42 +720,33 @@ func (rf *Raft) ticker() {
 				}(peer, appendRPCreq, appendRPCres)
 			}
 
-			// majority. only commit entries from the current term
+			// commit scan: advance commitIndex to the highest n that a
+			// majority holds — counting only current-term entries (§5.4.2,
+			// figure 8: an older-term entry on a majority can still be
+			// overwritten; it commits indirectly when a current-term entry
+			// above it does). n is a global index, so it starts at
+			// offset + len - 1 and every rf.log access subtracts.
 			rf.mu.Lock()
-			// n is a global index (matchIndex and commitIndex speak global),
-			// so it starts at offset + len - 1 and rf.log access subtracts
 			for n := rf.log[0].Index + len(rf.log) - 1; n > rf.commitIndex; n-- {
-
-				// checking if the new server has recieved new log entries
-				if rf.log[n - rf.log[0].Index].Term != rf.currentTerm {
+				if rf.log[n-rf.log[0].Index].Term != rf.currentTerm {
 					continue
 				}
 
-				// checking if the new server has replicated new log entries to majority
-				
-				count := 1 // replicated to ourselves, therefore, count ourselves
+				count := 1 // our own copy
 				for p := range rf.peers {
-					// skip ourselves in the loop as we've already counted ourselves
-					if p == rf.me { 
-						continue 
+					if p == rf.me {
+						continue
 					}
-					
-					// if matchIndex (highest replicated log entry), if log entry has been replicated, if index is equal or greater 
-					// count it because we know it has been replicated
-					// we are trying ot guess how many servers have the new log entries appended
 					if rf.matchIndex[p] >= n {
 						count++
 					}
 				}
 
-				// if count is greater than the no of peers, which means if the data has been replicated on majority of servers 
-				// set the commit index to n, because we know n has been committed in majority of servers
 				if count > len(rf.peers)/2 {
 					rf.commitIndex = n
 				}
 			}
 			rf.mu.Unlock()
-			
 
 			// sleep up to 100ms before the next round (idle heartbeats are
 			// capped at 10/sec) — but wake early if Start() just appended
@@ -880,10 +755,9 @@ func (rf *Raft) ticker() {
 			case <-rf.startKick:
 			case <-time.After(100 * time.Millisecond):
 			}
-			// skips the candidate's election logic after sending heatbeats to all other server
+			// leader round done — skip the election logic below
 			continue
 		}
-
 
 		// pause here so the follower/candidate path doesn't busy-spin;
 		// the leader path paces itself with the select at the end of its branch
@@ -900,50 +774,47 @@ func (rf *Raft) ticker() {
 		// no pre-election sleep and no re-check anymore: the randomness lives
 		// in the deadline itself, and the check + state change happen under
 		// one lock hold, so a heartbeat can't sneak in between.
-			rf.role = Candidate
-			rf.votedFor = rf.me
-			rf.currentTerm ++
-			term = rf.currentTerm
-			rf.resetElectionTimer()
+		rf.role = Candidate
+		rf.votedFor = rf.me
+		rf.currentTerm++
+		term = rf.currentTerm
+		rf.resetElectionTimer()
 
-			// global last index; term still read from the slice's last slot
-			lastLogIndx := rf.log[0].Index + len(rf.log) - 1
-			lastLogTerm := rf.log[len(rf.log) - 1].Term
+		// global last index; term still read from the slice's last slot
+		lastLogIndx := rf.log[0].Index + len(rf.log) - 1
+		lastLogTerm := rf.log[len(rf.log)-1].Term
 
-			// persist #9 
-			rf.persist()
+		rf.persist()
 		rf.mu.Unlock()
 
 		// send request vote RPC
-			reqRPC := RequestVoteArgs{ 
-					CandidateTerm : term, 
-					CandidateId : rf.me,
+		reqRPC := RequestVoteArgs{
+			CandidateTerm: term,
+			CandidateId:   rf.me,
 
-					LastLogIndex: lastLogIndx,
-					LastLogTerm: lastLogTerm,
-				}
-			resRPC := RequestVoteReply{}
-			
+			LastLogIndex: lastLogIndx,
+			LastLogTerm:  lastLogTerm,
+		}
+		resRPC := RequestVoteReply{}
 
-				noPeers := len(rf.peers)
-				ch := make(chan int, noPeers)
-				done := make(chan struct{})
+		noPeers := len(rf.peers)
+		ch := make(chan int, noPeers)
+		done := make(chan struct{})
 
-			for i := range rf.peers { 
-				// if waiting for vote, append RPC is encountered then we stop the vote. 
-				rf.mu.Lock()
-				if rf.role == Follower {
-					rf.mu.Unlock()
-					break
-				}
+		for i := range rf.peers {
+			// a valid leader's AppendEntries may have demoted us mid-fan-out;
+			// a candidate that has seen a real leader stops asking for votes
+			rf.mu.Lock()
+			if rf.role == Follower {
 				rf.mu.Unlock()
+				break
+			}
+			rf.mu.Unlock()
 
+			if i == rf.me {
+				continue
+			}
 
-
-				if i == rf.me {
-					continue 
-				}
-			
 			go func(i int, req RequestVoteArgs, res RequestVoteReply) {
 				if rf.sendRequestVote(i, &req, &res) {
 
@@ -962,67 +833,60 @@ func (rf *Raft) ticker() {
 					if res.VoteGranted {
 						select {
 						case ch <- res.ReplyTerm: // send vote, election still active
-						case <-done:              // election ended, drop vote
+						case <-done: // election ended, drop vote
 						}
 					}
 				}
 			}(i, reqRPC, resRPC)
-		} 
-			
-
-
-
+		}
 
 		// count votes until majority, loss, or timeout
 		votes := 1 // voted for self
 		won := false
 		timeout := time.After(300 * time.Millisecond)
 
-		countLoop:
-			for {
-				select {
-				case <-ch: // a vote arrived
-					votes++
-					if votes >= (noPeers/2)+1 {
-						won = true
-						break countLoop
-					}
-				case <-timeout: // election took too long, give up and retry next tick
+	countLoop:
+		for {
+			select {
+			case <-ch: // a vote arrived
+				votes++
+				if votes >= (noPeers/2)+1 {
+					won = true
 					break countLoop
 				}
-
-				// lost election? (a new leader's AppendEntries made us Follower)
-				rf.mu.Lock()
-				if rf.role == Follower {
-					rf.mu.Unlock()
-					break countLoop
-				}
-				rf.mu.Unlock()
+			case <-timeout: // election took too long, give up and retry next tick
+				break countLoop
 			}
 
-			if won {
-				rf.mu.Lock()
-				if rf.role == Candidate {
-					rf.role = Leader
-					// when the candidate becomes the leader we'd have to
-					// re initialize rf.nextIndex[i] and rf.matchIndex[i]
-
-					for i:= range rf.peers {
-						// next free global index, not slice length
-						rf.nextIndex[i] = rf.log[0].Index + len(rf.log)
-						rf.matchIndex[i] = 0
-					}
-				}
+			// lost election? (a new leader's AppendEntries made us Follower)
+			rf.mu.Lock()
+			if rf.role == Follower {
 				rf.mu.Unlock()
+				break countLoop
 			}
+			rf.mu.Unlock()
+		}
 
-			// tell leftover vote goroutines to stop
-			close(done)
+		if won {
+			rf.mu.Lock()
+			if rf.role == Candidate {
+				rf.role = Leader
+				// leader bookkeeping is rebuilt on every election win:
+				// nextIndex is the optimistic guess (probed downward),
+				// matchIndex the pessimistic proof (acked upward)
+				for i := range rf.peers {
+					// next free global index, not slice length
+					rf.nextIndex[i] = rf.log[0].Index + len(rf.log)
+					rf.matchIndex[i] = 0
+				}
+			}
+			rf.mu.Unlock()
+		}
+
+		// tell leftover vote goroutines to stop
+		close(done)
 	}
 }
-
-
-
 
 // the service or tester wants to create a Raft server. the ports
 // of all the Raft servers (including this one) are in peers[]. this
@@ -1035,45 +899,45 @@ func (rf *Raft) ticker() {
 // for any long-running work.
 func Make(peers []*labrpc.ClientEnd, me int,
 	persister *tester.Persister, applyCh chan raftapi.ApplyMsg) raftapi.Raft {
-	rf          := &Raft{}
-	rf.peers     = peers
+	rf := &Raft{}
+	rf.peers = peers
 	rf.persister = persister
-	rf.me        = me
+	rf.me = me
 
-	
-	rf.currentTerm = 0 
-	rf.votedFor    = -1 
-	rf.role        = Follower
+	rf.currentTerm = 0
+	rf.votedFor = -1
+	rf.role = Follower
 	// each server boots with its own random 400-700ms deadline — this is what
 	// breaks the boot-time synchronization (all five used to share now+400ms)
 	rf.resetElectionTimer()
 
-	rf.log         = []LogEntry{{Term : 0, Index : 0}}
+	rf.log = []LogEntry{{Term: 0, Index: 0}}
 	rf.commitIndex = 0
 	rf.lastApplied = 0
-	rf.nextIndex   = make([]int, len(rf.peers))
-	rf.matchIndex  = make([]int, len(rf.peers))
+	rf.nextIndex = make([]int, len(rf.peers))
+	rf.matchIndex = make([]int, len(rf.peers))
 	// buffered 1: one pending kick is enough to wake the next round
-	rf.startKick   = make(chan struct{}, 1)
+	rf.startKick = make(chan struct{}, 1)
 
-	// initially have nextIndex and matchIndex
-	for p := range peers{ 
-		rf.nextIndex[p] = len(rf.log) 
+	// boot-time defaults; a leader rebuilds these on every election win
+	for p := range peers {
+		rf.nextIndex[p] = len(rf.log)
 		rf.matchIndex[p] = 0
 	}
 
 	// initialize from state persisted before a crash
 	rf.readPersist(persister.ReadRaftState())
 
-	// Rebooting the server will restore the previous state of this server
-	// the first value in the log stores the snapshot's index, therefore we can safely apply the snapshot's result here
+	// everything through the sentinel is inside the snapshot: already
+	// committed, already applied — the service restores itself from the
+	// blob, so the applier must not count up from zero after a reboot
 	rf.commitIndex = rf.log[0].Index
 	rf.lastApplied = rf.log[0].Index
 
 	// start ticker goroutine to start elections
 	go rf.ticker()
 
-	go func(){
+	go func() {
 		// apply data to the state machine
 		for !rf.killed() {
 			rf.mu.Lock()
@@ -1090,28 +954,30 @@ func Make(peers []*labrpc.ClientEnd, me int,
 				}
 				rf.pendingSnapshot = nil
 				rf.mu.Unlock()
-				
+
 				applyCh <- msg
 				continue
 			}
 
 			if rf.commitIndex > rf.lastApplied {
-				rf.lastApplied ++
+				rf.lastApplied++
 				// lastApplied is a global index — subtract offset for the slice
-				cmd := rf.log[rf.lastApplied - rf.log[0].Index].Command
-				indx := rf.log[rf.lastApplied - rf.log[0].Index].Index
+				cmd := rf.log[rf.lastApplied-rf.log[0].Index].Command
+				indx := rf.log[rf.lastApplied-rf.log[0].Index].Index
 				rf.mu.Unlock()
 
-				// applyCh is unbufferece, a secnd on it waits until someone on the other end takes the value. 
+				// applyCh is unbuffered: the send parks until the service
+				// receives, which is why the lock is released first
 				applyCh <- raftapi.ApplyMsg{CommandValid: true, Command: cmd, CommandIndex: indx}
-			} else { 
+			} else {
 				rf.mu.Unlock()
 
 				// nothing new to apply. without a pause this loop would re-check the
 				// same thing millions of times a second and hog the CPU. nap 10ms,
 				// then check again.
 				time.Sleep(10 * time.Millisecond)
-			}}
+			}
+		}
 	}()
 	return rf
 }

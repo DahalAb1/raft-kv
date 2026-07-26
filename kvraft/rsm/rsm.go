@@ -9,7 +9,6 @@ import (
 	"raft-kv/raft"
 	"raft-kv/raftapi"
 	"raft-kv/tester"
-
 )
 
 type Op struct {
@@ -19,7 +18,6 @@ type Op struct {
 	Id  int
 	Req interface{}
 }
-
 
 // A server (i.e., ../server.go) that wants to replicate itself calls
 // MakeRSM and must implement the StateMachine interface.  This
@@ -40,25 +38,14 @@ type RSM struct {
 	applyCh      chan raftapi.ApplyMsg
 	maxraftstate int // snapshot if log grows this big
 	sm           StateMachine
-	nextId  int
-	waiters map[int]chan any // waiters watis for committed data
+	nextId       int
+	waiters      map[int]chan any // log index → pager of the Submit parked at that index
 }
 
-// servers[] contains the ports of the set of
-// servers that will cooperate via Raft to
-// form the fault-tolerant key/value service.
-//
-// me is the index of the current server in servers[].
-//
-// the k/v server should store snapshots through the underlying Raft
-// implementation, which should call persister.SaveStateAndSnapshot() to
-// atomically save the Raft state along with the snapshot.
-// The RSM should snapshot when Raft's saved state exceeds maxraftstate bytes,
-// in order to allow Raft to garbage-collect its log. if maxraftstate is -1,
-// you don't need to snapshot.
-//
-// MakeRSM() must return quickly, so it should start goroutines for
-// any long-running work.
+// MakeRSM wires a state machine to a Raft instance. me is this server's
+// index in servers[]; maxraftstate is the snapshot threshold (-1 disables
+// snapshotting). MakeRSM must return quickly, so the long-running work
+// lives in the reader goroutine it starts.
 func MakeRSM(servers []*labrpc.ClientEnd, me int, persister *tester.Persister, maxraftstate int, sm StateMachine) *RSM {
 	rsm := &RSM{
 		me:           me,
@@ -78,15 +65,13 @@ func MakeRSM(servers []*labrpc.ClientEnd, me int, persister *tester.Persister, m
 		for {
 			msg := <-rsm.applyCh
 			if !msg.CommandValid {
-				continue 
+				continue
 			}
 			op := msg.Command.(Op)
 			res := rsm.sm.DoOp(op.Req)
 
 			rsm.mu.Lock()
 
-			// map lookups have two value form built into the language
-			// therefore we get okay when we just send ch
 			ch, ok := rsm.waiters[msg.CommandIndex]
 			if ok {
 				delete(rsm.waiters, msg.CommandIndex)
@@ -103,7 +88,6 @@ func MakeRSM(servers []*labrpc.ClientEnd, me int, persister *tester.Persister, m
 		}
 	}()
 
-	
 	return rsm
 }
 
@@ -111,16 +95,10 @@ func (rsm *RSM) Raft() raftapi.Raft {
 	return rsm.rf
 }
 
-
 // Submit a command to Raft, and wait for it to be committed.  It
 // should return ErrWrongLeader if client should find new leader and
 // try again.
 func (rsm *RSM) Submit(req any) (rpc.Err, any) {
-
-	// Submit creates an Op structure to run a command through Raft;
-	// for example: op := Op{Me: rsm.me, Id: id, Req: req}, where req
-	// is the argument to Submit and id is a unique id for the op.
-
 	rsm.mu.Lock()
 	rsm.nextId += 1
 	cmd := Op{Me: rsm.me, Id: rsm.nextId, Req: req}
@@ -148,7 +126,7 @@ func (rsm *RSM) Submit(req any) (rpc.Err, any) {
 	for {
 		select {
 		case v := <-ch:
-			op := v.(Op) // (<-)ch --> recieves data from channel gets info as any type, .(Op) --> convert any of channel's return to Op
+			op := v.(Op)
 			res := <-ch
 
 			// impostor check: leadership may have changed after Start, and a new
@@ -160,9 +138,9 @@ func (rsm *RSM) Submit(req any) (rpc.Err, any) {
 			}
 			return rpc.OK, res
 
-			// every 100 ms we check if the leadership has changed
-			// if it has then we drop the channel and clear out the waiting dic with channel's info
-			// if not the above case handles it. 
+		// no commit news: every 100ms, re-check that the regime that made
+		// our promise still holds. the tick is a heartbeat, not a deadline —
+		// nothing gives up because time passed, only because the answer changed
 		case <-time.After(100 * time.Millisecond):
 			term, isLeader := rsm.rf.GetState()
 			if term == startTerm && isLeader {

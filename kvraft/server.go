@@ -6,7 +6,6 @@ import (
 	"raft-kv/labgob"
 	"raft-kv/labrpc"
 	"raft-kv/tester"
-
 )
 
 type entry struct {
@@ -23,11 +22,8 @@ type KVServer struct {
 	kvs map[string]entry
 }
 
-// To type-cast req to the right type, take a look at Go's type switches or type
-// assertions below:
-//
-// https://go.dev/tour/methods/16
-// https://go.dev/tour/methods/15
+// DoOp executes one committed op against the store. it runs only on the
+// rsm's reader goroutine, in log order, identically on every server.
 func (kv *KVServer) DoOp(req any) any {
 	switch args := req.(type) {
 	case rpc.GetArgs:
@@ -63,6 +59,8 @@ func (kv *KVServer) DoOp(req any) any {
 	return nil
 }
 
+// kv-layer snapshots (lab 4C) are not implemented; Snapshot and Restore
+// exist to satisfy the rsm.StateMachine interface.
 func (kv *KVServer) Snapshot() []byte {
 	return nil
 }
@@ -93,8 +91,7 @@ func (kv *KVServer) Put(args *rpc.PutArgs, reply *rpc.PutReply) {
 // StartKVServer() and MakeRSM() must return quickly, so they should
 // start goroutines for any long-running work.
 func StartKVServer(servers []*labrpc.ClientEnd, gid tester.Tgid, me int, persister *tester.Persister, maxraftstate int) []any {
-	// call labgob.Register on structures you want
-	// Go's RPC library to marshall/unmarshall.
+	// labgob must know every concrete type that travels through the log
 	labgob.Register(rsm.Op{})
 	labgob.Register(rpc.PutArgs{})
 	labgob.Register(rpc.GetArgs{})
@@ -104,7 +101,6 @@ func StartKVServer(servers []*labrpc.ClientEnd, gid tester.Tgid, me int, persist
 	kv := &KVServer{me: me, kvs: make(map[string]entry)}
 
 	kv.rsm = rsm.MakeRSM(servers, me, persister, maxraftstate, kv)
-	// You may need initialization code here.
 	return []any{kv, kv.rsm.Raft()}
 }
 
